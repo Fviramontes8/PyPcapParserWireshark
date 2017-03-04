@@ -11,27 +11,40 @@ I/O:
     output: returns the data
 
 Example:
-    output = dr.databaseReader(username='postgres', password='postgres', excel=True, output=True)
+    #>>> output = dr.databaseReader(excel=True, output=True)
+         Connecting to the PostgreSQL database...
+         Connected to host '192.168.1.121'
+         Data retrieved
+         Database connection closed.
 
-    output now contains the data from a table, and an xlsx file is also stored in the same directory as the program
+     output now contains the data from a table, and an xlsx file is also stored in the same directory as the program
 
 To do:
     Currently this is dummy data. Once we have the structure of data that we want this will change to support extracting
-    that data. A configuration file will be created to access the/any database with user/pass more easily and will be imported.
+    that data.
 '''
+
 #import modules
 import psycopg2
 import pandas as pd
 import os
+from config import config
 
 #query a table. Do not call this function
-def _databaseQuery(username, password):
+def _databaseQuery():
     try:
-        conn = psycopg2.connect(dbname='networkinfodb',  user=username, password=password, host='192.168.1.121', port=5432)
+        params = config()
+
+        if params is None:
+            return
+
+        print('Connecting to the PostgreSQL database...')
+        conn = psycopg2.connect(**params)
+        #conn = psycopg2.connect(dbname='networkinfodb',  user=username, password=password, host='192.168.1.121', port=5432)
         print("Connected to host '192.168.1.121'")
     except:
         print("Unable to connect to the database!")
-        
+        return
     cur = conn.cursor()
     
     try:
@@ -39,20 +52,20 @@ def _databaseQuery(username, password):
         print("Data retrieved")
     except:
         print("Error accessing database")
-    
-    return cur.fetchall()
+
+    output = cur.fetchall()
+
+    if conn is not None:
+        conn.close()
+        print('Database connection closed.')
+
+    return output
 
 #query a table interface. Use this function
-def databaseReader(username=None, password=None, path=None, excel = False, output = True):
-    if username is None:
-        print('Username is required')
-        return
-    elif password is None:
-        print('Password is required')
-        return
-    
+def read(path=None, excel = False, output = True):
+
     #query all data from database
-    data = _databaseQuery(username, password)
+    data = _databaseQuery()
     
     if excel == True:
         df = pd.DataFrame(data)
