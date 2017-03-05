@@ -11,7 +11,7 @@ I/O:
     output: returns the data
 
 Example:
-    #>>> output = dr.databaseReader(excel=True, output=True)
+    #>>> output = databaseReader(excel=True, output=True)
          Connecting to the PostgreSQL database...
          Connected to host '192.168.1.121'
          Data retrieved
@@ -31,7 +31,7 @@ import os
 from config import config
 
 #query a table. Do not call this function
-def _databaseQuery():
+def _databaseRead():
     try:
         params = config()
 
@@ -45,13 +45,11 @@ def _databaseQuery():
     except:
         print("Unable to connect to the database!")
         return
+    
     cur = conn.cursor()
     
-    try:
-        cur.execute("""SELECT * from networkInfo""")
-        print("Data retrieved")
-    except:
-        print("Error accessing database")
+    cur.execute("""SELECT * from networkInfo""")
+    print("Data retrieved")
 
     output = cur.fetchall()
 
@@ -65,7 +63,7 @@ def _databaseQuery():
 def read(path=None, excel = False, output = True):
 
     #query all data from database
-    data = _databaseQuery()
+    data = _databaseRead()
     
     if excel == True:
         df = pd.DataFrame(data)
@@ -86,4 +84,43 @@ def read(path=None, excel = False, output = True):
         writer.save()
     if output:
         return data
+    
+
+def databaseWrite(databaseInput, output = False):
+    try:
+        params = config()
+
+        if params is None:
+            return
+
+        print('Connecting to the PostgreSQL database...')
+        conn = psycopg2.connect(**params)
+
+        print("Connected to host '192.168.1.121'")
+    except:
+        print("Unable to connect to the database!")
+        return
+    
+    
+    cur = conn.cursor()
+    
+    
+    query = "INSERT INTO networkInfo (Source, Destination, Type, Download, Upload) VALUES (%s, %s, %s, %s, %s)"
+        
+    if len(databaseInput) > 1:
+        print("many")
+        print(databaseInput)
+        cur.executemany(query, databaseInput)
+    else:
+        print("one")
+        cur.execute(query, (databaseInput))
+            
+    conn.commit()
+    print("Data written")
+    
+
+    #cur.close()
+    if conn is not None:
+        conn.close()
+        print('Database connection closed.')
 		
