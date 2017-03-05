@@ -21,7 +21,7 @@ Example:
 
 To do:
     Currently this is dummy data. Once we have the structure of data that we want this will change to support extracting
-    that data.
+    that data. This will involve changing Table names to access specific data.
 '''
 
 #import modules
@@ -48,7 +48,7 @@ def _databaseQuery():
     cur = conn.cursor()
     
     try:
-        cur.execute("""SELECT * from Cars""")
+        cur.execute("""SELECT * from networkInfo""")
         print("Data retrieved")
     except:
         print("Error accessing database")
