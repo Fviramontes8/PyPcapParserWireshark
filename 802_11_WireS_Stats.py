@@ -2,6 +2,34 @@ from glob import glob
 import pyshark
 import socket
 
+def check_flags(pkt):
+    try:
+        if pkt.channel_flags_turbo != "0":
+            print "Uses turbo"
+        if pkt.channel_flags_cck != "0":
+            print "Uses Complementary Code Keying" 
+        if pkt.channel_flags_ofdm != "0":
+            print "Uses OFDM"
+        if pkt.channel_flags_2ghz != "0":
+            print "Uses 2 GHz spectrum"
+        if pkt.channel_flags_5ghz != "0":
+            print "Uses 5 GHz spectrum"
+        if pkt.channel_flags_passive != "0":
+            print "Uses passive mode"
+        if pkt.channel_flags_dynamic != "0":
+            print "Uses dynamic CCK-OFDM"
+        if pkt.channel_flags_gfsk != "0":
+            print "Uses Gaussian frequency shift keying"
+        if pkt.channel_flags_gsm != "0":
+            print "Uses GSM at 900 MHz"
+        if pkt.channel_flags_sturbo != "0":
+            print "Uses static turbo"
+        if pkt.channel_flags_half != "0":
+            print "Uses a half rate channel (10 MHz channel width)"
+        if pkt.channel_flags_quarter != "0":
+            print "Uses a quarter rate channel (5MHz channel width)"
+    except:
+        print "Cannot determine channel flags"
 
 for file_name in glob("*.pcap"):
     with open(file_name, "rb") as pcap_data:      #Opens .pcap files in working directory
@@ -15,42 +43,42 @@ for file_name in glob("*.pcap"):
                                              # address, destination MAC addresses
                                              # and bits from source to destination
                 
-        k = 0
+        n = 0
         for z in pdata:
-            k += 1
-        print file_name
-        for n in range(0, k):
             pkt = pdata[n]
             #Packet number
             print "Packet: " + str(n+1)
             #Timestamp in UTC/Epoch
-            print pkt.sniff_timestamp         
-            #Source MAC address
-            eth_src = pkt.wlan.sa
-            #Destination MAC address
-            eth_dst = pkt.wlan.da
-            #Amount of bits from the nth packet
-            dBits = int(pkt.length) * 8
-            #Simple calculation of cumulitive bits
-            cBits += dBits
+            print pkt.sniff_timestamp
+            try:         
+                #Source MAC address
+                eth_src = pkt.wlan.sa
+                #Destination MAC address
+                eth_dst = pkt.wlan.da
+                #Amount of bits from the nth packet
+                dBits = int(pkt.length) * 8
+                #Simple calculation of cumulitive bits
+                cBits += dBits
 
-            #Adds source and destination MAC address and the number of bits
-            # from source to destination into a dictionary, modeled like this:
-            # {src1 :{dst1 : bits from src1 to dst1}, {dst2 : bits from src1 to dst2}}   
-            if eth_src not in ethDict:             #Adds to dictionary with initial bits
-                ethDict[eth_src] = {eth_dst : dBits}
-            elif eth_dst not in ethDict[eth_src]: #Adds additional destinations
-                ethDict[eth_src].update({eth_dst : dBits})
-            else:                                   #Updates bits in dictionary
-                ethDict[eth_src][eth_dst] += dBits
-        
-            #This adds all unique MAC addresses to a list
-            if eth_src not in uniqueEth:
-                uniqueEth.append(eth_src)
-                nOU += 1
-            if eth_dst not in uniqueEth:
-                uniqueEth.append(eth_dst)
-                nOU += 1 
+                #Adds source and destination MAC address and the number of bits
+                # from source to destination into a dictionary, modeled like this:
+                # {src1 :{dst1 : bits from src1 to dst1}, {dst2 : bits from src1 to dst2}}   
+                if eth_src not in ethDict:             #Adds to dictionary with initial bits
+                    ethDict[eth_src] = {eth_dst : dBits}
+                elif eth_dst not in ethDict[eth_src]: #Adds additional destinations
+                    ethDict[eth_src].update({eth_dst : dBits})
+                else:                                   #Updates bits in dictionary
+                    ethDict[eth_src][eth_dst] += dBits
+            
+                #This adds all unique MAC addresses to a list
+                if eth_src not in uniqueEth:
+                    uniqueEth.append(eth_src)
+                    nOU += 1
+                if eth_dst not in uniqueEth:
+                    uniqueEth.append(eth_dst)
+                    nOU += 1 
+            except:
+                pass
             #The packet has IPv4 information
             try:
                 pkt.ip
@@ -115,20 +143,42 @@ for file_name in glob("*.pcap"):
             except:
                 pass
             try:
+                #Trying to see what is the physical type
                 if pkt.wlan_radio.phy == "4":
                     phy = "802.11b"
                     print "Physical type: " + phy
+                    check_flags(pkt.radiotap)
+                if pkt.wlan_radio.phy == "6":
+                    phy = "802.11g"
+                    print "Physical type: " + phy
+                    check_flags(pkt.radiotap)
+                if pkt.wlan_radio.phy == "7":
+                    phy = "802.11n"
+                    print "Physical type: " + phy
+                    check_flags(pkt.radiotap)
+                    #802.11n sometimes gives can give us bandwidth
+                    try:
+                        pkt.wlan_radio.get_field("11n_bandwidth")
+                        band = pkt.wlan_radio.get_field("11n_bandwidth")
+                        if band is not None and band == "0":
+                            band = "20 Mhz"
+                            print "802.11n bandwidth is: " + band
+                    except:
+                        pass
+                #Finds out what channel is being used
                 channel = pkt.wlan_radio.channel
                 print "Channel: " + channel
+                #The frequency is the same as channel frequency
                 freq = pkt.wlan_radio.frequency
                 print "Frequency: " + freq + " Mhz"
                 dur = pkt.wlan_radio.duration
                 print "Duration: " + dur + " us"
                 preamble = pkt.wlan_radio.preamble
                 print "Preamble duration: " + preamble + " us"
+                print "\n"
             except:
                 pass
-                
+            n += 1    
             
         if nOU > 0: 
             print "Number of Users: "+str(nOU)
@@ -138,7 +188,8 @@ for file_name in glob("*.pcap"):
             for k in ethDict: 
                 for n in ethDict[k]:
                     print "From " + str(k) + " to " + str(n)+" is " +\
-                    str(ethDict[k][n]) + " bits \n"
+                    str(ethDict[k][n]) + " bits"
+            print"\n"
             if ipv4:
                 print "IPv4 addresses: "
                 for h in ipv4:
