@@ -2,6 +2,8 @@ from glob import glob
 import pyshark
 import socket
 
+#Get port info as well
+
 def check_flags(pkt):
     try:
         if pkt.channel_flags_turbo != "0":
@@ -108,7 +110,14 @@ for file_name in glob("*.pcap"):
                     print "IP dst: " + name_ip + "\n"
                 if host_dstv4 not in ipv4:
                     ipv4.append(host_dstv4)
-                    
+                if pkt.ip.proto == "6":
+                    proto = "TCP"
+                    print "Source port: " + pkt.tcp.srcport
+                    print "Destination port: " + pkt.tcp.dstport
+                if pkt.ip.proto == "17":
+                    proto = "UDP" 
+                    print "Source port: " + pkt.udp.srcport
+                    print "Destination port: " + pkt.udp.dstport  
             except:
                 pass
             #The packet has IPv6 information
@@ -144,6 +153,7 @@ for file_name in glob("*.pcap"):
                 pass
             try:
                 #Trying to see what is the physical type
+                #Consider using a dictionary for this
                 if pkt.wlan_radio.phy == "4":
                     phy = "802.11b"
                     print "Physical type: " + phy
@@ -156,7 +166,7 @@ for file_name in glob("*.pcap"):
                     phy = "802.11n"
                     print "Physical type: " + phy
                     check_flags(pkt.radiotap)
-                    #802.11n sometimes gives can give us bandwidth
+                    #802.11n can give us bandwidth
                     try:
                         pkt.wlan_radio.get_field("11n_bandwidth")
                         band = pkt.wlan_radio.get_field("11n_bandwidth")

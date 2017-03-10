@@ -37,11 +37,12 @@ Output:
 
 import databaseReader as dr
 import databaseVerification as dv
+import databaseWriter as dw
 
 dv.verify()
 out = dr.read(output=True)
 print(out)
-data = (('202.163.1.248', '255.255.244.5', 'other', 9.0, 12.5),('155.163.5.155', '255.255.255.5', 'other', 9.0, 12.5))
+data = (('999.163.1.248', '255.255.244.5', 'other', 9.0, 12.5),('155.163.5.995', '255.255.255.5', 'njii9u', 9.0, 12.5))
 dw.databaseWriteList(data)
 out = dr.read(output=True)
 print(out)
