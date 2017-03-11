@@ -52,16 +52,18 @@ for file_name in glob("*.pcap"):
             print "Packet: " + str(n+1)
             #Timestamp in UTC/Epoch
             print pkt.sniff_timestamp
+            try:
+                #Amount of bits from the nth packet
+                dBits = int(pkt.length) * 8
+                #Simple calculation of cumulitive bits
+                cBits += dBits
+            except:
+                pass
             try:         
                 #Source MAC address
                 eth_src = pkt.wlan.sa
                 #Destination MAC address
                 eth_dst = pkt.wlan.da
-                #Amount of bits from the nth packet
-                dBits = int(pkt.length) * 8
-                #Simple calculation of cumulitive bits
-                cBits += dBits
-
                 #Adds source and destination MAC address and the number of bits
                 # from source to destination into a dictionary, modeled like this:
                 # {src1 :{dst1 : bits from src1 to dst1}, {dst2 : bits from src1 to dst2}}   
@@ -117,7 +119,8 @@ for file_name in glob("*.pcap"):
                 if pkt.ip.proto == "17":
                     proto = "UDP" 
                     print "Source port: " + pkt.udp.srcport
-                    print "Destination port: " + pkt.udp.dstport  
+                    print "Destination port: " + pkt.udp.dstport 
+                print "\n" 
             except:
                 pass
             #The packet has IPv6 information
@@ -142,13 +145,23 @@ for file_name in glob("*.pcap"):
                 if name_ip not in ipv6:
                     try:
                         host_dstv6 = socket.getfqdn(name_ip)
-                        print ("IP dst: " + host_dstv6)
+                        print ("IP dst: " + host_dstv6 + "\n")
                     except socket.timeout, err:
                         print "Timed out, IP dst: ", name_ip, err
                 else:
                     print "IP dst: " + name_ip + "\n"
                 if host_dstv6 not in ipv6:
                     ipv6.append(host_dstv6)
+                    
+                if pkt.ipv6.nxt == "6":
+                    proto = "TCP"
+                    print "Source port: " + pkt.tcp.srcport
+                    print "Destination port: " + pkt.tcp.dstport
+                if pkt.ipv6.nxt == "17":
+                    proto = "UDP"
+                    print "Source port: " + pkt.udp.srcport
+                    print "Destination port: " + pkt.udp.srcport
+                print "\n"
             except:
                 pass
             try:
@@ -181,9 +194,14 @@ for file_name in glob("*.pcap"):
                 #The frequency is the same as channel frequency
                 freq = pkt.wlan_radio.frequency
                 print "Frequency: " + freq + " Mhz"
+                d_rate = pkt.wlan_radio.data_rate
+                print "Data rate is: " + d_rate + " Mb/s"
+                signal_stren = pkt.wlan_radio.signal_dbm
+                print "Signal strength: " + signal_stren + " dBm"
                 dur = pkt.wlan_radio.duration
                 print "Duration: " + dur + " us"
                 preamble = pkt.wlan_radio.preamble
+                print pkt.length
                 print "Preamble duration: " + preamble + " us"
                 print "\n"
             except:
