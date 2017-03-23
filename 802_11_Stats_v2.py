@@ -38,7 +38,7 @@ def check_flags(pkt, cflags):
 for file_name in glob("*.pcap"):
     with open(file_name, "rb") as pcap_data:      #Opens .pcap files in working directory
         pdata = pyshark.FileCapture(pcap_data)#Loads .pcap data into variable "pdata" 
-        uniqueEth = []                       #Empty list of Unique MAC addresses
+        uEth = []                            #Empty list of Unique MAC addresses
         nOU= 0                               #Number of Users
         cBits = 0                            #Cumulitive Bits
         ipv4 = []                            #List for IPv4 addresses
@@ -85,11 +85,11 @@ for file_name in glob("*.pcap"):
                     ethDict[eth_src][eth_dst] += dBits
             
                 #This adds all unique MAC addresses to a list
-                if eth_src not in uniqueEth:
-                    uniqueEth.append(eth_src)
+                if eth_src not in uEth:
+                    uEth.append(eth_src)
                     nOU += 1
-                if eth_dst not in uniqueEth:
-                    uniqueEth.append(eth_dst)
+                if eth_dst not in uEth:
+                    uEth.append(eth_dst)
                     nOU += 1 
             except:
                 pass
@@ -119,8 +119,10 @@ for file_name in glob("*.pcap"):
                         pass
                 else:
                     print "IPv4 dst: " + name_ip + "\n"
+                    
                 if host_dstv4 not in ipv4:
                     ipv4.append(host_dstv4)
+                    
                 if pkt.ip.proto == "6":
                     proto = "TCP"
                     print "Source port: " + pkt.tcp.srcport
@@ -138,13 +140,13 @@ for file_name in glob("*.pcap"):
                 #Trying to see what is the physical type
                 #Consider using a dictionary for this
                 if pkt.wlan_radio.phy == "4":
-                    phy = "802.11b"
+                    phy = "b"
                     check_flags(pkt.radiotap,cflags)
                 if pkt.wlan_radio.phy == "6":
-                    phy = "802.11g"
+                    phy = "g"
                     check_flags(pkt.radiotap,cflags)
                 if pkt.wlan_radio.phy == "7":
-                    phy = "802.11n"
+                    phy = "n"
                     check_flags(pkt.radiotap,cflags)
                     #802.11n can give us bandwidth
                     try:
@@ -178,20 +180,23 @@ for file_name in glob("*.pcap"):
             total_dur = 1
         for k in ethDict: 
                 for j in ethDict[k]:
-                    l = str(k) + " to " + str(j)
+                    l = str(pdata[0].sniff_timestamp) + "_" + str(k) + " to " + str(j)
                     if l not in ethFin:
                         ethFin[l] = ethDict[k][j]
+        for k in cflags:
+            ethFin[k] = cflags[k]
         if nOU > 0: 
             print "Number of Users: "+str(nOU)
-            for z in uniqueEth:
+            for z in uEth:
                 print z
             print"\n"
             print "Bandwidth is "+str(int(cBits/total_dur))+" bits/s \n"
             for k in cflags:
                 if cflags[k] > 0:
                     print k + ": " + str(cflags[k])
-            for j in ethFin:
-                print "From " + j + " is " + str(ethFin[j]) + " bits"
+#            for j in ethFin:
+#                print "From " + j + " is " + str(ethFin[j]) + " bits"
+            print ethFin
             print"\n"
         else:
             print "There are no users/data for this pcap file: " + str(file_name)

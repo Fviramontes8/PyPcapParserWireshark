@@ -55,6 +55,11 @@ for file_name in glob("*.pcap"):
             #Timestamp in UTC/Epoch
             print pkt.sniff_timestamp #float
             
+            #Channel Flags counter
+            cflags_c = {"cck": 0,"ofdm": 0,"twoghz": 0,"fiveghz": 0,\
+            "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0,"half": 0,\
+            "quarter": 0}
+            
             #Computing bits in packet n and adding to cumulitive bits
             try:
                 #Amount of bits from the nth packet
@@ -64,30 +69,38 @@ for file_name in glob("*.pcap"):
             except:
                 pass
                 
-            #Computing bits from user A to user B
+            #Computing statistics from user A to user B
             try:         
                 #Source MAC address
                 eth_src = pkt.wlan.sa
                 #Destination MAC address
                 eth_dst = pkt.wlan.da
-                #Adds source and destination MAC address and the number of bits
-                # from source to destination into a dictionary, modeled like this:
-                # {src1 :{dst1 : bits from src1 to dst1}, {dst2 : bits from src1 to dst2}}   
-                if eth_src not in ethDict:             #Adds to dictionary with initial bits
+                
+                #Dictionary structure: {key : [timestamp, src, dst, 
+                # bits from src to dst, passive, 2GHz, quarter, ofdm, cck, 
+                # gfsk, 5GHz, half, gsm, cck_ofdm]}
+                if eth_src not in ethDict:
                     ethDict[eth_src] = {eth_dst : \
-                    [int(float(pdata[0].sniff_timestamp)), eth_src, eth_dst, dBits]}
-                elif eth_dst not in ethDict[eth_src]: #Adds additional destinations
+                    [int(float(pdata[0].sniff_timestamp)), eth_src, eth_dst, dBits,\
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} #The zeros are for channel flags
+                #For multiple sources that have different destinations
+                elif eth_dst not in ethDict[eth_src]: 
                     ethDict[eth_src].update({eth_dst :\
-                    [int(float(pdata[0].sniff_timestamp)), eth_src, eth_dst, dBits]})
-                else:                                   #Updates bits in dictionary
-                    ethDict[eth_src][eth_dst][2] += dBits
+                    [int(float(pdata[0].sniff_timestamp)), eth_src, eth_dst, dBits,\
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]})#The zeros are for channel flags
+                #Updates bits in dictionary
+                else:
+                    ethDict[eth_src][eth_dst][3] += dBits
                     
-#                try:
-#                    check_flags(pkt.radiotap,cflags)
-#                    for f in cflags:
-#                        ethDict[eth_src][eth_dst].append(cflags[f])
-#                except:
-#                    pass
+                #Function calls for checking/updating channel flags   
+                check_flags(pkt.radiotap,cflags)
+                check_flags(pkt.radiotap,cflags_c)
+                
+                #This little piece right here updates channel flags betweens users
+                iterator = 4
+                for f in cflags:
+                    ethDict[eth_src][eth_dst][iterator] += cflags_c[f]
+                    iterator += 1
                 
                 #This adds all unique MAC addresses to a list
                 if eth_src not in uEth:
@@ -194,8 +207,6 @@ for file_name in glob("*.pcap"):
             for k in cflags:
                 if cflags[k] > 0:
                     print k + ": " + str(cflags[k])
-#            for j in ethFin:
-#                print "From " + j + " is " + str(ethFin[j]) + " bits"
             print ethFin
             print"\n"
         else:
