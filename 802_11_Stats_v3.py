@@ -200,7 +200,7 @@ for file_name in glob("*.pcap"):
                 for j in ethDict[k]:
                     l = str(int(float(pdata[0].sniff_timestamp))) + "_" + str(k) + "_" + str(j)
                     if l not in ethFin:
-                        ethFin[l] = ethDict[k][j]
+                        ethFin[l] = [l] + ethDict[k][j]
         if nOU > 0: 
             print "Number of Users: "+str(nOU)
             for z in uEth:
