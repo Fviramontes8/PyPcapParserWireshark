@@ -140,7 +140,8 @@ for file_name in glob("*.pcap"):
                     
                 if host_dstv4 not in ipv4:
                     ipv4.append(host_dstv4)
-                    
+                
+                #Checks protocol version of an IPv4 packet and prints socket info  
                 if pkt.ip.proto == "6":
                     proto = "TCP"
                     print "Source port: " + pkt.tcp.srcport
@@ -189,10 +190,12 @@ for file_name in glob("*.pcap"):
                 print "Preamble duration: " + preamble + " us\n"
             except:
                 pass
-            n += 1    
+            n += 1  
+              
         total_dur = float(pdata[n-1].sniff_timestamp) - float(pdata[0].sniff_timestamp)
         if total_dur <= 0:
             total_dur = 1
+        #Puts ethDict into a more readable dictionary, ready to give to a database
         for k in ethDict: 
                 for j in ethDict[k]:
                     l = str(int(float(pdata[0].sniff_timestamp))) + "_" + str(k) + "_" + str(j)
