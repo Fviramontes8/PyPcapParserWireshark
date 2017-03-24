@@ -2,60 +2,76 @@ from glob import glob
 import pyshark
 import socket
 
-#This function checks specific channel flags of a packet and updates a dictionary
+#This function checks specific channel flags of a packet
+# also updates a dictionary counting channel flags
 def check_flags(pkt, cflags):
     try:
+        #Complementary Code Keying
         if pkt.channel_flags_cck != "0":
-            cflags["cck"] += 1 #Complementary Code Keying 
+            cflags["cck"] += 1  
+        #Orthogonal Frequency Division Multiplexing
         if pkt.channel_flags_ofdm != "0":
             cflags["ofdm"] += 1
+        #Uses 2 GHz spectrum
         if pkt.channel_flags_2ghz != "0":
-            cflags["twoghz"] += 1 #Uses 2 GHz spectrum
+            cflags["twoghz"] += 1 
+        #Uses 5 GHz spectrum
         if pkt.channel_flags_5ghz != "0":
-            cflags["fiveghz"] += 1 #Uses 5 GHz spectrum
+            cflags["fiveghz"] += 1 
+        #Passive mode is on
         if pkt.channel_flags_passive != "0":
-            cflags["passive"] += 1 #Passive mode is on
+            cflags["passive"] += 1 
+        #Dynamic CCK-OFDM
         if pkt.channel_flags_dynamic != "0":
-            cflags["cck_ofdm"] += 1 #Dynamic CCK-OFDM
+            cflags["cck_ofdm"] += 1 
+        #Gaussian frequency shift keying
         if pkt.channel_flags_gfsk != "0":
-            cflags["gfsk"] += 1 #Gaussian frequency shift keying
+            cflags["gfsk"] += 1 
+        #GSM at 900 MHz
         if pkt.channel_flags_gsm != "0":
-            cflags["gsm"] += 1 #GSM at 900 MHz
+            cflags["gsm"] += 1 
+        #Uses a half rate channel (10 MHz channel width)
         if pkt.channel_flags_half != "0":
-            #Uses a half rate channel (10 MHz channel width)
             cflags["half"] += 1
+        #Uses a quarter rate channel (5MHz channel width)
         if pkt.channel_flags_quarter != "0":
-            #Uses a quarter rate channel (5MHz channel width)
             cflags["quarter"] += 1
+        #Returns the updated dictionary
         return cflags
     except:
         print "Cannot determine channel flags"
 
 for file_name in glob("*.pcap"):
-    with open(file_name, "rb") as pcap_data:      #Opens .pcap files in working directory
-        pdata = pyshark.FileCapture(pcap_data)#Loads .pcap data into variable "pdata" 
-        uEth = []                            #Empty list of Unique MAC addresses
-        nOU= 0                               #Number of Users
-        cBits = 0                            #Cumulitive Bits
-        ipv4 = []                            #List for IPv4 addresses
-        ethDict = {}                         #Dictionary that holds Source MAC 
-                                             # address, destination MAC addresses
-                                             # and bits from source to destination
-        #Channel Flags
+    #Opens .pcap files in working directory
+    with open(file_name, "rb") as pcap_data:
+        #Loads .pcap data into variable "pdata"
+        pktdata = pyshark.FileCapture(pcap_data) 
+        #Empty list of Unique MAC addresses
+        uniqueEth = []                            
+        #Interger counter for number of users
+        nOU= 0                               
+        #Cumulitive Bits
+        cBits = 0                            
+        #List for IPv4 addresses
+        ipv4 = []                            
+        #Dictionary that holds Source MAC address, destination MAC addresses
+        # and bits from source to destination
+        ethDict = {}  
+        #Cumulitive channel Flag counter
         cflags = {"cck": 0,"ofdm": 0,"twoghz": 0,"fiveghz": 0,\
         "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0,"half": 0,\
         "quarter": 0}
         ethFin = {}
                 
         n = 0
-        for z in pdata:
-            pkt = pdata[n]
+        for z in pktdata:
+            pkt = pktdata[n]
             #Packet number
             print "Packet: " + str(n+1)
-            #Timestamp in UTC/Epoch
-            print pkt.sniff_timestamp #float
+            #Timestamp in UTC/Epoch time
+            print pkt.sniff_timestamp
             
-            #Channel Flags counter
+            #Channel Flag counter between two users
             cflags_c = {"cck": 0,"ofdm": 0,"twoghz": 0,"fiveghz": 0,\
             "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0,"half": 0,\
             "quarter": 0}
@@ -76,18 +92,23 @@ for file_name in glob("*.pcap"):
                 #Destination MAC address
                 eth_dst = pkt.wlan.da
                 
-                #Dictionary structure: {key : [timestamp, src, dst, 
+                #Dictionary that takes and updates data sent between two users
+                # the zeros count how many times the channel flags occur.
+                # For example, if 3 2GHz cck signals were are between users 
+                # the output of the flag counter would look like this:'
+                # [..., ..., ..., ..., 0, 3, 0, 0, 3, 0, 0, 0, 0, 0]
+                #Format: {key : [timestamp, src, dst, 
                 # bits from src to dst, passive, 2GHz, quarter, ofdm, cck, 
                 # gfsk, 5GHz, half, gsm, cck_ofdm]}
                 if eth_src not in ethDict:
                     ethDict[eth_src] = {eth_dst : \
-                    [int(float(pdata[0].sniff_timestamp)), eth_src, eth_dst, dBits,\
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} #The zeros are for channel flags
+                    [int(float(pktdata[0].sniff_timestamp)), eth_src, eth_dst, dBits,\
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} 
                 #For multiple sources that have different destinations
                 elif eth_dst not in ethDict[eth_src]: 
                     ethDict[eth_src].update({eth_dst :\
-                    [int(float(pdata[0].sniff_timestamp)), eth_src, eth_dst, dBits,\
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]})#The zeros are for channel flags
+                    [int(float(pktdata[0].sniff_timestamp)), eth_src, eth_dst, dBits,\
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]})
                 #Updates bits in dictionary
                 else:
                     ethDict[eth_src][eth_dst][3] += dBits
@@ -96,26 +117,30 @@ for file_name in glob("*.pcap"):
                 check_flags(pkt.radiotap,cflags)
                 check_flags(pkt.radiotap,cflags_c)
                 
-                #This little piece right here updates channel flags betweens users
+                #This little block updates channel flags betweens users
                 iterator = 4
                 for f in cflags:
                     ethDict[eth_src][eth_dst][iterator] += cflags_c[f]
                     iterator += 1
                 
-                #This adds all unique MAC addresses to a list
-                if eth_src not in uEth:
-                    uEth.append(eth_src)
+                #This adds all unique MAC addresses to a list and counts number 
+                # of users based on number of unique MAC addresses
+                if eth_src not in uniqueEth:
+                    uniqueEth.append(eth_src)
                     nOU += 1
-                if eth_dst not in uEth:
-                    uEth.append(eth_dst)
+                if eth_dst not in uniqueEth:
+                    uniqueEth.append(eth_dst)
                     nOU += 1 
             except:
                 pass
                 
             #Taking a look at IPv4 information
             try:
+                #Takes a 'bare' ip address (129.168.24.131) and tries to find
+                # the fully qualified domain name, but if it was already encountered
+                # in a previous packet, we do not want to do a lookup again and will
+                # move on.
                 name_ip = pkt.ip.src
-            
                 if name_ip not in ipv4:
                     try:
                         host_srcv4 = socket.getfqdn(name_ip)
@@ -124,10 +149,15 @@ for file_name in glob("*.pcap"):
                         pass
                 else:
                     print "IPv4 src: " + name_ip
-                    
+                
+                #This adds either a 'bare' ip address (129.168.24.131) or 
+                # a domain name (video.google.com) so if the parser comes across
+                # another packet with the same IP address it does not waste time
+                # doing a fully qualified domain name lookup    
                 if host_srcv4 not in ipv4:
                     ipv4.append(host_srcv4)
-        
+                
+                #This does the exact thing as above, but with the destination IP address
                 name_ip = pkt.ip.dst
                 if name_ip not in ipv4:
                     try:
@@ -157,7 +187,6 @@ for file_name in glob("*.pcap"):
             #Looking at signal properties of the packet
             try:
                 #Trying to see what is the physical type
-                #Consider using a dictionary for this
                 if pkt.wlan_radio.phy == "4":
                     phy = "b"
                 if pkt.wlan_radio.phy == "6":
@@ -174,13 +203,16 @@ for file_name in glob("*.pcap"):
                     except:
                         pass
                 #Finds out what channel is being used
-                channel = pkt.wlan_radio.channel #int
-                #The frequency is the same as channel frequency
-                freq = pkt.wlan_radio.frequency #int
-                d_rate = pkt.wlan_radio.data_rate #int
-                signal_stren = pkt.wlan_radio.signal_dbm #int
-                dur = pkt.wlan_radio.duration #int
-                preamble = pkt.wlan_radio.preamble #int
+                channel = pkt.wlan_radio.channel
+                #Displays channel frequency
+                freq = pkt.wlan_radio.frequency
+                #Data rate from source to destination
+                d_rate = pkt.wlan_radio.data_rate
+                #Displays signal strength in decibels
+                signal_stren = pkt.wlan_radio.signal_dbm
+                #Duration and preamble duration
+                dur = pkt.wlan_radio.duration
+                preamble = pkt.wlan_radio.preamble
                 print "Physical type: " + phy
                 print "Channel: " + channel
                 print "Frequency: " + freq + " Mhz"
@@ -192,18 +224,21 @@ for file_name in glob("*.pcap"):
                 pass
             n += 1  
               
-        total_dur = float(pdata[n-1].sniff_timestamp) - float(pdata[0].sniff_timestamp)
+        total_dur = float(pktdata[n-1].sniff_timestamp) - float(pktdata[0].sniff_timestamp)
         if total_dur <= 0:
             total_dur = 1
-        #Puts ethDict into a more readable dictionary, ready to give to a database
+        #Puts ethDict into a more readable dictionary, ready to give to a database 
+        #Format:
+        #{key:[key, timestamp, src, dst, bits from src to dst, passive,
+        #2GHz, quarter, ofdm, cck, gfsk, 5GHz, half, gsm, cck_ofdm]}
         for k in ethDict: 
                 for j in ethDict[k]:
-                    l = str(int(float(pdata[0].sniff_timestamp))) + "_" + str(k) + "_" + str(j)
+                    l = str(int(float(pktdata[0].sniff_timestamp))) + str(k) + str(j)
                     if l not in ethFin:
                         ethFin[l] = [l] + ethDict[k][j]
         if nOU > 0: 
             print "Number of Users: "+str(nOU)
-            for z in uEth:
+            for z in uniqueEth:
                 print z
             print"\n"
             print "Bandwidth is "+str(int(cBits/total_dur))+" bits/s \n"
