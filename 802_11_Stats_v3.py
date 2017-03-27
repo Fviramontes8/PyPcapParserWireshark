@@ -39,7 +39,7 @@ def check_flags(pkt, cflags):
         #Returns the updated dictionary
         return cflags
     except:
-        print "Cannot determine channel flags"
+        print "No channel flags"
 
 for file_name in glob("*.pcap"):
     #Opens .pcap files in working directory
@@ -164,11 +164,11 @@ for file_name in glob("*.pcap"):
                 if name_ip not in ipv4:
                     try:
                         fqdn_dstv4 = socket.getfqdn(name_ip)
-                        print ("IPv4 dst: " + fqdn_dstv4 + "\n")
+                        print ("IPv4 dst: " + fqdn_dstv4)
                     except:
                         pass
                 else:
-                    print "IPv4 dst: " + name_ip + "\n"
+                    print "IPv4 dst: " + name_ip
                     
                 if fqdn_dstv4 not in ipv4:
                     ipv4.append(fqdn_dstv4)
@@ -177,12 +177,11 @@ for file_name in glob("*.pcap"):
                 if pkt.ip.proto == "6":
                     proto = "TCP"
                     print "Source port: " + pkt.tcp.srcport
-                    print "Destination port: " + pkt.tcp.dstport
+                    print "Destination port: " + pkt.tcp.dstport + "\n"
                 if pkt.ip.proto == "17":
                     proto = "UDP" 
                     print "Source port: " + pkt.udp.srcport
-                    print "Destination port: " + pkt.udp.dstport 
-                print "\n" 
+                    print "Destination port: " + pkt.udp.dstport + "\n"
             except:
                 pass
                 
@@ -215,7 +214,7 @@ for file_name in glob("*.pcap"):
                 #Duration and preamble duration in mircoseconds
                 dur = pkt.wlan_radio.duration
                 preamble = pkt.wlan_radio.preamble
-                print "Physical type: " + phy
+                print "Physical type: 802.11" + phy
                 print "Channel: " + channel
                 print "Frequency: " + freq + " Mhz"
                 print "Data rate is: " + d_rate + " Mb/s"
@@ -240,14 +239,13 @@ for file_name in glob("*.pcap"):
                 for j in ethDict[k]:
                     l = str(int(float(pktdata[0].sniff_timestamp))) + str(k) + str(j)
                     if l not in ethFinal:
-                        ethFinal[l] = [l] + ethDict[k][j]
+                        ethFinal[l] = ethDict[k][j] #[l] + 
         
         #Finally, we print everything
         if numOfUsers > 0: 
             print "Number of Users: "+str(numOfUsers)
             for z in uniqueEth:
                 print z
-            print"\n"
             print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s \n"
             for k in cflags:
                 if cflags[k] > 0:
