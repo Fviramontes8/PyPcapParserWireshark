@@ -240,12 +240,13 @@ for file_name in glob("*.pcap"):
                     l = str(int(float(pktdata[0].sniff_timestamp))) + str(k) + str(j)
                     if l not in ethFinal:
                         ethFinal[l] = ethDict[k][j] #[l] + 
-        
+        print len(pktdata)
         #Finally, we print everything
         if numOfUsers > 0: 
             print "Number of Users: "+str(numOfUsers)
             for z in uniqueEth:
                 print z
+            print "Number of packets for this file: " + str(len(pktdata))
             print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s \n"
             for k in cflags:
                 if cflags[k] > 0:
