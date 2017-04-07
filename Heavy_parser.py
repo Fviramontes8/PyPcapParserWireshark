@@ -59,9 +59,7 @@ for file_name in glob("*.pcap"):
         #Interger counter for number of users
         numOfUsers= 0                               
         #Cumulitive Bits
-        cumulBits = 0
-        #Cumulitive signal strength
-        #cumul_sig_stren = 0                           
+        cumulBits = 0                          
         #List for IPv4 addresses
         ipv4 = []
         #List of dns answers for the pcap file (if there are any)
@@ -75,6 +73,10 @@ for file_name in glob("*.pcap"):
         #"quarter": 0}
         #This dictionary gets everything ready to upload to a database
         ethFinal = {}
+        
+        #######################################################################
+        #anomaly = []
+        #######################################################################
                 
         n = 0
         for z in pktdata:
@@ -104,7 +106,8 @@ for file_name in glob("*.pcap"):
                 eth_src = pkt.wlan.sa
                 #Destination MAC address
                 eth_dst = pkt.wlan.da
-                
+                #integer version of time stamp
+                ts = int(float(pktdata[0].sniff_timestamp))
                 #Dictionary that takes and updates data sent between two users
                 # the zeros count how many times the channel flags occur.
                 # For example, if 3 2GHz cck signals were are between users 
@@ -112,19 +115,19 @@ for file_name in glob("*.pcap"):
                 # [..., ..., ..., ..., 0, 3, 0, 3, 0, 0, 0, 0]
                 #Format: {key : [timestamp, src, dst, 
                 # bits from src to dst, passive, 2GHz, quarter, ofdm, cck, 
-                # gfsk, 5GHz, half, gsm, cck_ofdm, cumulitive signal strength]}
+                # gfsk, 5GHz, half, gsm, cck_ofdm, avg_divider, cumulitive 
+                # signal strength, cumulitive data rate]}
                 if eth_src not in ethDict:
-                    ethDict[eth_src] = {eth_dst : \
-                    [int(float(pktdata[0].sniff_timestamp)), eth_src, eth_dst, pktBits,\
-                    0, 0, 0, 0, 0, 0, 0, 0, 0]} 
+                    ethDict[eth_src] = {eth_dst : [ts, eth_src, eth_dst, \
+                    pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} 
                 #For multiple sources that have different destinations
                 elif eth_dst not in ethDict[eth_src]: 
-                    ethDict[eth_src].update({eth_dst :\
-                    [int(float(pktdata[0].sniff_timestamp)), eth_src, eth_dst, pktBits,\
-                    0, 0, 0, 0, 0, 0, 0, 0, 0]})
+                    ethDict[eth_src].update({eth_dst :[ts, eth_src, eth_dst, \
+                    pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]})
                 #Updates bits in dictionary
                 else:
                     ethDict[eth_src][eth_dst][3] += pktBits
+                    ethDict[eth_src][eth_dst][12] += 1
                     
                 #Function calls for checking/updating channel flags   
                 check_flags(pkt.radiotap,cflags)
@@ -136,7 +139,7 @@ for file_name in glob("*.pcap"):
                     if iterator < 12:
                         ethDict[eth_src][eth_dst][iterator] += cflags_c[f]
                         iterator += 1
-                 
+                
                 #Looking at signal properties of the packet
                 try:
                     #Determines the physical type, 802.11b/g/n
@@ -146,27 +149,29 @@ for file_name in glob("*.pcap"):
                         phy = "g"
                     if pkt.wlan_radio.phy == "7":
                         phy = "n"
+                    #Signal strength in decibels
+                    signal_strength = int(pkt.wlan_radio.signal_dbm)
+                    #Adds to the signal strength part of the dictionary
+                    ethDict[eth_src][eth_dst][13] += signal_strength
+                    #Data rate from source to destination in Mb/s
+                    d_rate = int(pkt.wlan_radio.data_rate)
+                    ethDict[eth_src][eth_dst][14] += d_rate
                     #Gives what channel is being used
                     channel = pkt.wlan_radio.channel
                     #Channel frequency of the packet in MHz
                     freq = pkt.wlan_radio.frequency
-                    #Data rate from source to destination in Mb/s
-                    d_rate = pkt.wlan_radio.data_rate
-                    #Signal strength in decibels
-                    signal_strength = pkt.wlan_radio.signal_dbm
-                    #cumul_sig_stren += signal_strength
-                    #ethDict[eth_src][eth_dst][12] += signal_strength
+                    
+                    
                     #Duration and preamble duration in mircoseconds
                     dur = pkt.wlan_radio.duration
                     preamble = pkt.wlan_radio.preamble
                     print "Physical type: 802.11" + phy
                     print "Channel: " + channel
                     print "Frequency: " + freq + " Mhz"
-                    print "Data rate is: " + d_rate + " Mb/s"
                     print "Duration: " + dur + " us"
                     print "Preamble duration: " + preamble + " us\n"
                 except:
-                    print "NOI"
+                    pass
                 #This adds all unique MAC addresses to a list and counts number 
                 # of users based on number of unique MAC addresses
                 if eth_src not in uniqueMAC:
@@ -176,7 +181,11 @@ for file_name in glob("*.pcap"):
                     uniqueMAC.append(eth_dst)
                     numOfUsers += 1 
             except:
-                pass
+                try:
+                    pkt.wlan.ra
+                    
+                except:
+                    pass
                 
             #Taking a look at IPv4 information
             try:
@@ -239,10 +248,16 @@ for file_name in glob("*.pcap"):
         #In the case that there is only one packet in the pcap file
         if total_duration <= 0:
             total_duration = 1
+        #Average for signal strength and data rate:
+        for k in ethDict:
+            for j in ethDict[k]:
+                ethDict[k][j][13] = ethDict[k][j][13]/ethDict[k][j][12]
+                ethDict[k][j][14] = ethDict[k][j][14]/ethDict[k][j][12]
         #Puts ethDict into a more readable dictionary, ready to give to a database 
         #Format:
         # {key:[key, timestamp, src, dst, bits from src to dst, passive,
-        # 2GHz, quarter, ofdm, cck, gfsk, 5GHz, half, gsm, cck_ofdm]}
+        # 2GHz, quarter, ofdm, cck, gfsk, 5GHz, half, gsm, cck_ofdm, 
+        # avg_divider, avg_signal strength, avg_data rate]}
         for k in ethDict: 
                 for j in ethDict[k]:
                     l = str(int(float(pktdata[0].sniff_timestamp))) + str(k) + str(j)
