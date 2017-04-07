@@ -39,6 +39,7 @@ def check_flags(pkt, cflags):
         return cflags
     except:
         print "No channel flags"
+        
 dns_addr = {}
 for file_name in glob("*.pcap"):
     #Opens .pcap files in working directory
@@ -146,31 +147,34 @@ for file_name in glob("*.pcap"):
                 ip_dst = pkt.ip.dst
                 print "IPv4 dst: " + ip_dst
                 
-################################################################################                
+                #If we encounter DNS packets we want to see which domains a user
+                # is looking for so we can see what services they may use.               
                 try:
-                    fqdns = pkt.dns.qry_name
-                    print fqdns
-                    if fqdns not in dns_list:
-                        dns_list.append(fqdns)
+                    #Full Qualified Domain Name
+                    fqdn = pkt.dns.qry_name
+                    #Adding the fqdn to a list so we can  go through the unique
+                    # IP addresses we find and replace it with the fqdn
+                    if fqdn not in dns_list:
+                        dns_list.append(fqdn)
                 except:
                     pass
                 
                 try:
-                    dns_canonName = pkt.dns.cname
-                    dns_addr[pkt.dns.a] = fqdns
-                    dns_addr[pkt.dns.a_0] = fqdns
-                    dns_addr[pkt.dns.a_1] = fqdns
-                    dns_addr[pkt.dns.a_2] = fqdns
-                    dns_addr[pkt.dns.a_3] = fqdns
-                    dns_addr[pkt.dns.a_4] = fqdns
-                    dns_addr[pkt.dns.a_5] = fqdns
-                    dns_addr[pkt.dns.a_6] = fqdns
-                    dns_addr[pkt.dns.a_7] = fqdns
-                    dns_addr[pkt.dns.a_8] = fqdns
-                    dns_addr[pkt.dns.a_9] = fqdns
+                    #DNS response packets can have multiple answers to a DNS
+                    # query, they can range from 1 - 9 answers so here we are
+                    # trying to pick up as much as we can.
+                    dns_addr[pkt.dns.a] = fqdn
+                    dns_addr[pkt.dns.a_0] = fqdn
+                    dns_addr[pkt.dns.a_1] = fqdn
+                    dns_addr[pkt.dns.a_2] = fqdn
+                    dns_addr[pkt.dns.a_3] = fqdn
+                    dns_addr[pkt.dns.a_4] = fqdn
+                    dns_addr[pkt.dns.a_5] = fqdn
+                    dns_addr[pkt.dns.a_6] = fqdn
+                    dns_addr[pkt.dns.a_7] = fqdn
+                    dns_addr[pkt.dns.a_8] = fqdn
                 except:
                    pass
-################################################################################
 
                 #Unique source/destination IP addresses are taken and added to a list    
                 if ip_src not in ipv4:
@@ -241,21 +245,29 @@ for file_name in glob("*.pcap"):
                 for j in ethDict[k]:
                     l = str(int(float(pktdata[0].sniff_timestamp))) + str(k) + str(j)
                     if l not in ethFinal:
-                        ethFinal[l] = ethDict[k][j] #[l] + 
+                        ethFinal[l] = [l] + ethDict[k][j]  
+        
         #Finally, we print everything
         if numOfUsers > 0: 
             print "Number of Users: "+str(numOfUsers)
             for z in uniqueMAC:
                 print z
             print "Number of packets for this file: " + str(len(pktdata))
-            print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s \n"
+            print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
+            
+            #Prints flags if they occured at least once
             for k in cflags:
                 if cflags[k] > 0:
                     print k + ": " + str(cflags[k])
+                    
+            #This goes through the ipv4 list and replaces matching IP addresses
+            # with the full qualified domain name so that we can determine 
+            # services
             for n in range(0, len(ipv4)):
                 for h in dns_addr:
                     if ipv4[n] == h:
                         ipv4[n] = dns_addr[h]
+                        
             print ethFinal
             print ipv4
             print"\n"

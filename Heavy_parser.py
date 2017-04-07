@@ -3,7 +3,7 @@ import pyshark
 
 ##################################################################
 
-# Calculate the means of: signal strength, data rate, 
+# Calculate the means of: SIGNAL STRENGTH, data rate, 
 # Calculate the percentage of iphone users, andriod users, windows phone
 #   users and pc users
 
@@ -37,16 +37,16 @@ def check_flags(pkt, cflags):
         #GSM at 900 MHz
         if pkt.channel_flags_gsm != "0":
             cflags["gsm"] += 1 
-        #Uses a half rate channel (10 MHz channel width)
+        '''#Uses a half rate channel (10 MHz channel width)
         if pkt.channel_flags_half != "0":
             cflags["half"] += 1
         #Uses a quarter rate channel (5MHz channel width)
         if pkt.channel_flags_quarter != "0":
-            cflags["quarter"] += 1
+            cflags["quarter"] += 1'''
         #Returns the updated dictionary
         return cflags
     except:
-        print "No channel flags"
+        pass
 
 dns_addr = {}
 for file_name in glob("*.pcap"):
@@ -59,7 +59,9 @@ for file_name in glob("*.pcap"):
         #Interger counter for number of users
         numOfUsers= 0                               
         #Cumulitive Bits
-        cumulBits = 0                            
+        cumulBits = 0
+        #Cumulitive signal strength
+        #cumul_sig_stren = 0                           
         #List for IPv4 addresses
         ipv4 = []
         #List of dns answers for the pcap file (if there are any)
@@ -69,8 +71,8 @@ for file_name in glob("*.pcap"):
         ethDict = {}  
         #Cumulitive channel Flag counter
         cflags = {"cck": 0,"ofdm": 0,"twoghz": 0,"fiveghz": 0,\
-        "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0,"half": 0,\
-        "quarter": 0}
+        "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0} #,"half": 0,\
+        #"quarter": 0}
         #This dictionary gets everything ready to upload to a database
         ethFinal = {}
                 
@@ -84,8 +86,8 @@ for file_name in glob("*.pcap"):
             
             #Channel Flag counter between two users
             cflags_c = {"cck": 0,"ofdm": 0,"twoghz": 0,"fiveghz": 0,\
-            "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0,"half": 0,\
-            "quarter": 0}
+            "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0} #,"half": 0,\
+            #"quarter": 0}
             
             #Computing bits in packet n and adding to cumulitive bits
             try:
@@ -107,19 +109,19 @@ for file_name in glob("*.pcap"):
                 # the zeros count how many times the channel flags occur.
                 # For example, if 3 2GHz cck signals were are between users 
                 # the output of the flag counter would look like this:'
-                # [..., ..., ..., ..., 0, 3, 0, 0, 3, 0, 0, 0, 0, 0]
+                # [..., ..., ..., ..., 0, 3, 0, 3, 0, 0, 0, 0]
                 #Format: {key : [timestamp, src, dst, 
                 # bits from src to dst, passive, 2GHz, quarter, ofdm, cck, 
-                # gfsk, 5GHz, half, gsm, cck_ofdm]}
+                # gfsk, 5GHz, half, gsm, cck_ofdm, cumulitive signal strength]}
                 if eth_src not in ethDict:
                     ethDict[eth_src] = {eth_dst : \
                     [int(float(pktdata[0].sniff_timestamp)), eth_src, eth_dst, pktBits,\
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} 
+                    0, 0, 0, 0, 0, 0, 0, 0, 0]} 
                 #For multiple sources that have different destinations
                 elif eth_dst not in ethDict[eth_src]: 
                     ethDict[eth_src].update({eth_dst :\
                     [int(float(pktdata[0].sniff_timestamp)), eth_src, eth_dst, pktBits,\
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]})
+                    0, 0, 0, 0, 0, 0, 0, 0, 0]})
                 #Updates bits in dictionary
                 else:
                     ethDict[eth_src][eth_dst][3] += pktBits
@@ -131,9 +133,40 @@ for file_name in glob("*.pcap"):
                 #This little block updates channel flags betweens users
                 iterator = 4
                 for f in cflags:
-                    ethDict[eth_src][eth_dst][iterator] += cflags_c[f]
-                    iterator += 1
-                
+                    if iterator < 12:
+                        ethDict[eth_src][eth_dst][iterator] += cflags_c[f]
+                        iterator += 1
+                 
+                #Looking at signal properties of the packet
+                try:
+                    #Determines the physical type, 802.11b/g/n
+                    if pkt.wlan_radio.phy == "4":
+                        phy = "b"
+                    if pkt.wlan_radio.phy == "6":
+                        phy = "g"
+                    if pkt.wlan_radio.phy == "7":
+                        phy = "n"
+                    #Gives what channel is being used
+                    channel = pkt.wlan_radio.channel
+                    #Channel frequency of the packet in MHz
+                    freq = pkt.wlan_radio.frequency
+                    #Data rate from source to destination in Mb/s
+                    d_rate = pkt.wlan_radio.data_rate
+                    #Signal strength in decibels
+                    signal_strength = pkt.wlan_radio.signal_dbm
+                    #cumul_sig_stren += signal_strength
+                    #ethDict[eth_src][eth_dst][12] += signal_strength
+                    #Duration and preamble duration in mircoseconds
+                    dur = pkt.wlan_radio.duration
+                    preamble = pkt.wlan_radio.preamble
+                    print "Physical type: 802.11" + phy
+                    print "Channel: " + channel
+                    print "Frequency: " + freq + " Mhz"
+                    print "Data rate is: " + d_rate + " Mb/s"
+                    print "Duration: " + dur + " us"
+                    print "Preamble duration: " + preamble + " us\n"
+                except:
+                    print "NOI"
                 #This adds all unique MAC addresses to a list and counts number 
                 # of users based on number of unique MAC addresses
                 if eth_src not in uniqueMAC:
@@ -155,27 +188,32 @@ for file_name in glob("*.pcap"):
                 ip_dst = pkt.ip.dst
                 print "IPv4 dst: " + ip_dst
                 
+                #If we encounter DNS packets we want to see which domains a user
+                # is looking for so we can see what services they may use.               
                 try:
-                    fqdns = pkt.dns.qry_name
-                    print fqdns
-                    if fqdns not in dns_list:
-                        dns_list.append(fqdns)
+                    #Full Qualified Domain Name
+                    fqdn = pkt.dns.qry_name
+                    #Adding the fqdn to a list so we can  go through the unique
+                    # IP addresses we find and replace it with the fqdn
+                    if fqdn not in dns_list:
+                        dns_list.append(fqdn)
                 except:
                     pass
                 
                 try:
-                    dns_canonName = pkt.dns.cname
-                    dns_addr[pkt.dns.a] = fqdns
-                    dns_addr[pkt.dns.a_0] = fqdns
-                    dns_addr[pkt.dns.a_1] = fqdns
-                    dns_addr[pkt.dns.a_2] = fqdns
-                    dns_addr[pkt.dns.a_3] = fqdns
-                    dns_addr[pkt.dns.a_4] = fqdns
-                    dns_addr[pkt.dns.a_5] = fqdns
-                    dns_addr[pkt.dns.a_6] = fqdns
-                    dns_addr[pkt.dns.a_7] = fqdns
-                    dns_addr[pkt.dns.a_8] = fqdns
-                    dns_addr[pkt.dns.a_9] = fqdns
+                    #DNS response packets can have multiple answers to a DNS
+                    # query, they can range from 1 - 9 answers so here we are
+                    # trying to pick up as much as we can.
+                    dns_addr[pkt.dns.a] = fqdn
+                    dns_addr[pkt.dns.a_0] = fqdn
+                    dns_addr[pkt.dns.a_1] = fqdn
+                    dns_addr[pkt.dns.a_2] = fqdn
+                    dns_addr[pkt.dns.a_3] = fqdn
+                    dns_addr[pkt.dns.a_4] = fqdn
+                    dns_addr[pkt.dns.a_5] = fqdn
+                    dns_addr[pkt.dns.a_6] = fqdn
+                    dns_addr[pkt.dns.a_7] = fqdn
+                    dns_addr[pkt.dns.a_8] = fqdn
                 except:
                    pass
                 
@@ -194,45 +232,6 @@ for file_name in glob("*.pcap"):
                 print "Uses " + proto + " protocol"
             except:
                 pass
-                
-            #Looking at signal properties of the packet
-            try:
-                #Determines the physical type, 802.11b/g/n
-                if pkt.wlan_radio.phy == "4":
-                    phy = "b"
-                if pkt.wlan_radio.phy == "6":
-                    phy = "g"
-                if pkt.wlan_radio.phy == "7":
-                    phy = "n"
-                    #802.11n can give us the bandwidth used
-                    try:
-                        pkt.wlan_radio.get_field("11n_bandwidth")
-                        band = pkt.wlan_radio.get_field("11n_bandwidth")
-                        if band is not None and band == "0":
-                            band = "20 Mhz"
-                            print "802.11n bandwidth is: " + band
-                    except:
-                        pass
-                #Gives what channel is being used
-                channel = pkt.wlan_radio.channel
-                #Channel frequency of the packet in MHz
-                freq = pkt.wlan_radio.frequency
-                #Data rate from source to destination in Mb/s
-                d_rate = pkt.wlan_radio.data_rate
-                #Signal strength in decibels
-                signal_strength = pkt.wlan_radio.signal_dbm
-                #Duration and preamble duration in mircoseconds
-                dur = pkt.wlan_radio.duration
-                preamble = pkt.wlan_radio.preamble
-                print "Physical type: 802.11" + phy
-                print "Channel: " + channel
-                print "Frequency: " + freq + " Mhz"
-                print "Data rate is: " + d_rate + " Mb/s"
-                print "Signal strength: " + signal_strength + " dBm"
-                print "Duration: " + dur + " us"
-                print "Preamble duration: " + preamble + " us\n"
-            except:
-                pass
             n += 1  
         
         #Gets time between final and first packet, this is computed to find bandwidth      
@@ -240,7 +239,6 @@ for file_name in glob("*.pcap"):
         #In the case that there is only one packet in the pcap file
         if total_duration <= 0:
             total_duration = 1
-        
         #Puts ethDict into a more readable dictionary, ready to give to a database 
         #Format:
         # {key:[key, timestamp, src, dst, bits from src to dst, passive,
@@ -249,23 +247,30 @@ for file_name in glob("*.pcap"):
                 for j in ethDict[k]:
                     l = str(int(float(pktdata[0].sniff_timestamp))) + str(k) + str(j)
                     if l not in ethFinal:
-                        ethFinal[l] = ethDict[k][j] #[l] + 
-        print len(pktdata)
+                        ethFinal[l] = ethDict[k][j] #[l] + #
+        
         #Finally, we print everything
         if numOfUsers > 0: 
             print "Number of Users: "+str(numOfUsers)
             for z in uniqueMAC:
                 print z
             print "Number of packets for this file: " + str(len(pktdata))
-            print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s \n"
+            print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
+            
+            #Prints flags if they occured at least once
             for k in cflags:
                 if cflags[k] > 0:
                     print k + ": " + str(cflags[k])
+            
+            #This goes through the ipv4 list and replaces matching IP addresses
+            # with the full qualified domain name so that we can determine 
+            # services
             for n in range(0, len(ipv4)):
                 for h in dns_addr:
                     if ipv4[n] == h:
                         ipv4[n] = dns_addr[h]
             print ethFinal
+            print ipv4
             print"\n"
         else:
             print "There are no users/data for this pcap file: " + str(file_name)
