@@ -99,11 +99,65 @@ for file_name in glob("*.pcap"):
                 cumulBits += pktBits
             except:
                 pass
+            #Taking a look at IPv4 information
+            try:
+                #Source IP address of the packet
+                ip_src = pkt.ip.src
+                print "IPv4 src: " + ip_src
                 
+                #Destination IP address of the packet
+                ip_dst = pkt.ip.dst
+                print "IPv4 dst: " + ip_dst
+                
+                #If we encounter DNS packets we want to see which domains a user
+                # is looking for so we can see what services they may use.               
+                try:
+                    #Full Qualified Domain Name
+                    fqdn = pkt.dns.qry_name
+                    #Adding the fqdn to a list so we can  go through the unique
+                    # IP addresses we find and replace it with the fqdn
+                    if fqdn not in dns_list:
+                        dns_list.append(fqdn)
+                except:
+                    pass
+                
+                try:
+                    #DNS response packets can have multiple answers to a DNS
+                    # query, they can range from 1 - 9 answers so here we are
+                    # trying to pick up as much as we can.
+                    dns_addr[pkt.dns.a] = fqdn
+                    dns_addr[pkt.dns.a_0] = fqdn
+                    dns_addr[pkt.dns.a_1] = fqdn
+                    dns_addr[pkt.dns.a_2] = fqdn
+                    dns_addr[pkt.dns.a_3] = fqdn
+                    dns_addr[pkt.dns.a_4] = fqdn
+                    dns_addr[pkt.dns.a_5] = fqdn
+                    dns_addr[pkt.dns.a_6] = fqdn
+                    dns_addr[pkt.dns.a_7] = fqdn
+                    dns_addr[pkt.dns.a_8] = fqdn
+                except:
+                   pass
+                
+                #Unique source/destination IP addresses are taken and added to a list   
+                if ip_src not in ipv4:
+                    ipv4.append(ip_src)
+                    
+                if ip_dst not in ipv4:
+                    ipv4.append(ip_dst)
+                
+                #Checks protocol version of an IPv4 packet  
+                if pkt.ip.proto == "6":
+                    proto = "TCP"
+                if pkt.ip.proto == "17":
+                    proto = "UDP"
+                print "Uses " + proto + " protocol"
+            except:
+                pass
+                    
             #Computing statistics from user A to user B
             try:         
                 #Source MAC address
-                eth_src = pkt.wlan.sa
+                et h_src = pkt.wlan.sa
                 #Destination MAC address
                 eth_dst = pkt.wlan.da
                 #integer version of time stamp
@@ -187,60 +241,7 @@ for file_name in glob("*.pcap"):
                 except:
                     pass
                 
-            #Taking a look at IPv4 information
-            try:
-                #Source IP address of the packet
-                ip_src = pkt.ip.src
-                print "IPv4 src: " + ip_src
-                
-                #Destination IP address of the packet
-                ip_dst = pkt.ip.dst
-                print "IPv4 dst: " + ip_dst
-                
-                #If we encounter DNS packets we want to see which domains a user
-                # is looking for so we can see what services they may use.               
-                try:
-                    #Full Qualified Domain Name
-                    fqdn = pkt.dns.qry_name
-                    #Adding the fqdn to a list so we can  go through the unique
-                    # IP addresses we find and replace it with the fqdn
-                    if fqdn not in dns_list:
-                        dns_list.append(fqdn)
-                except:
-                    pass
-                
-                try:
-                    #DNS response packets can have multiple answers to a DNS
-                    # query, they can range from 1 - 9 answers so here we are
-                    # trying to pick up as much as we can.
-                    dns_addr[pkt.dns.a] = fqdn
-                    dns_addr[pkt.dns.a_0] = fqdn
-                    dns_addr[pkt.dns.a_1] = fqdn
-                    dns_addr[pkt.dns.a_2] = fqdn
-                    dns_addr[pkt.dns.a_3] = fqdn
-                    dns_addr[pkt.dns.a_4] = fqdn
-                    dns_addr[pkt.dns.a_5] = fqdn
-                    dns_addr[pkt.dns.a_6] = fqdn
-                    dns_addr[pkt.dns.a_7] = fqdn
-                    dns_addr[pkt.dns.a_8] = fqdn
-                except:
-                   pass
-                
-                #Unique source/destination IP addresses are taken and added to a list   
-                if ip_src not in ipv4:
-                    ipv4.append(ip_src)
-                    
-                if ip_dst not in ipv4:
-                    ipv4.append(ip_dst)
-                
-                #Checks protocol version of an IPv4 packet  
-                if pkt.ip.proto == "6":
-                    proto = "TCP"
-                if pkt.ip.proto == "17":
-                    proto = "UDP"
-                print "Uses " + proto + " protocol"
-            except:
-                pass
+            
             n += 1  
         
         #Gets time between final and first packet, this is computed to find bandwidth      
@@ -285,7 +286,9 @@ for file_name in glob("*.pcap"):
                     if ipv4[n] == h:
                         ipv4[n] = dns_addr[h]
             print ethFinal
+            print"\n"
             print ipv4
             print"\n"
+            print dns_addr
         else:
             print "There are no users/data for this pcap file: " + str(file_name)
