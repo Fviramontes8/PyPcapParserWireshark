@@ -157,7 +157,7 @@ for file_name in glob("*.pcap"):
             #Computing statistics from user A to user B
             try:         
                 #Source MAC address
-                et h_src = pkt.wlan.sa
+                eth_src = pkt.wlan.sa
                 #Destination MAC address
                 eth_dst = pkt.wlan.da
                 #integer version of time stamp
@@ -170,14 +170,14 @@ for file_name in glob("*.pcap"):
                 #Format: {key : [timestamp, src, dst, 
                 # bits from src to dst, passive, 2GHz, quarter, ofdm, cck, 
                 # gfsk, 5GHz, half, gsm, cck_ofdm, avg_divider, cumulitive 
-                # signal strength, cumulitive data rate]}
+                # signal strength, cumulitive data rate, duration (us)]}
                 if eth_src not in ethDict:
                     ethDict[eth_src] = {eth_dst : [ts, eth_src, eth_dst, \
-                    pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} 
+                    pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} 
                 #For multiple sources that have different destinations
                 elif eth_dst not in ethDict[eth_src]: 
                     ethDict[eth_src].update({eth_dst :[ts, eth_src, eth_dst, \
-                    pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]})
+                    pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]})
                 #Updates bits in dictionary
                 else:
                     ethDict[eth_src][eth_dst][3] += pktBits
@@ -203,6 +203,11 @@ for file_name in glob("*.pcap"):
                         phy = "g"
                     if pkt.wlan_radio.phy == "7":
                         phy = "n"
+                    #Adding physical type to the dictionary
+#                    try:
+#                        ethDict[eth_src][eth_dst].append(phy)
+#                    except:
+#                        pass
                     #Signal strength in decibels
                     signal_strength = int(pkt.wlan_radio.signal_dbm)
                     #Adds to the signal strength part of the dictionary
@@ -211,18 +216,18 @@ for file_name in glob("*.pcap"):
                     d_rate = int(pkt.wlan_radio.data_rate)
                     ethDict[eth_src][eth_dst][14] += d_rate
                     #Gives what channel is being used
-                    channel = pkt.wlan_radio.channel
+                    channel = int(pkt.wlan_radio.channel)
                     #Channel frequency of the packet in MHz
                     freq = pkt.wlan_radio.frequency
                     
-                    
                     #Duration and preamble duration in mircoseconds
-                    dur = pkt.wlan_radio.duration
+                    dur = int(pkt.wlan_radio.duration)
+                    #Adds duration of the packet to get cumulitive value (us)
+                    ethDict[eth_src][eth_dst][15] += dur
                     preamble = pkt.wlan_radio.preamble
                     print "Physical type: 802.11" + phy
-                    print "Channel: " + channel
+                    print "Channel: " + str(channel)
                     print "Frequency: " + freq + " Mhz"
-                    print "Duration: " + dur + " us"
                     print "Preamble duration: " + preamble + " us\n"
                 except:
                     pass
