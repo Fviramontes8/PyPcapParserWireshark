@@ -22,13 +22,8 @@ Example:
          Connected to host '192.168.1.121'
          Data written
          Database connection closed.
-
-To do:
-    Currently this is dummy data. Once we have the structure of data that we want this will change to support extracting
-    that data. This will involve changing Table names to access specific data. 
-    
-    Function to update data may be needed. When classifying types we may change classification and thus need to update the types in the         database. "databaseUpdate(databaseInput)"
 '''
+
 import psycopg2
 from config import config
 
@@ -49,9 +44,12 @@ def databaseWrite(databaseInput):
     
     cur = conn.cursor()
     
-    query = "INSERT INTO networkInfo (Source, Destination, Type, Download, Upload) VALUES (%s, %s, %s, %s, %s)"
-        
-    cur.execute(query, (databaseInput))
+    #query = "INSERT INTO networkInfo (Source, Destination, Type, Download, Upload) VALUES (%s, %s, %s, %s, %s)"
+    #query = "INSERT INTO networkInfo (Source, Destination, Type, Download, Upload) VALUES (%s, %s, %s, %d, %d, %s, %d, %d, %d, %d, %d, %d)"
+    #query = "INSERT INTO networkTest (Key, SourceIP, DestinationIP, SourcePort, DestinationPort, PhysType, ChannelFlag, ChannelNumber, ChannelFrequency, DataRateIn, SignalStrength, Bandwidth) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"    
+    query = "INSERT INTO networkTest11 (Key, Timestamp, SourceMAC, DestinationMAC, Bandwidth, flag1, flag2, flag3, flag4, flag5, flag6, flag7, flag8, flag9, flag10) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"    
+   
+    cur.execute(query, databaseInput)
             
     conn.commit()
     print("Data written")
@@ -61,7 +59,7 @@ def databaseWrite(databaseInput):
     if conn is not None:
         conn.close()
         print('Database connection closed.')
-    
+
 def databaseWriteList(databaseInput):
     try:
         params = config()
@@ -79,17 +77,37 @@ def databaseWriteList(databaseInput):
     
     cur = conn.cursor()
     
-    
-    query = "INSERT INTO networkInfo (Source, Destination, Type, Download, Upload) VALUES (%s, %s, %s, %s, %s)"
-        
+    query = "INSERT INTO networkTest (Key, SourceIP, DestinationIP, SourcePort, DestinationPort, PhysType, ChannelFlag, ChannelNumber, ChannelFrequency, DataRateIn, SignalStrength, Bandwidth) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"    
 
     cur.executemany(query, databaseInput)
  
     conn.commit()
     print("Data written")
-    
 
     #cur.close()
     if conn is not None:
         conn.close()
         print('Database connection closed.')
+        
+def databaseWriteTable():
+    try:
+        params = config()
+
+        if params is None:
+            return
+
+        print('Connecting to the PostgreSQL database...')
+        conn = psycopg2.connect(**params)
+
+        print("Connected to Database")
+    except:
+        print("Unable to connect to the database!")
+        return
+    
+    cur = conn.cursor()
+    
+    #cur.execute("CREATE TABLE networkTest (Key VARCHAR(30) PRIMARY KEY, SourceIP VARCHAR(20), DestinationIP VARCHAR(20), SourcePort INT, DestinationPort INT, PhysType VARCHAR(20), ChannelFlag INT, ChannelNumber INT, ChannelFrequency INT, DataRateIn INT, SignalStrength INT, Bandwidth INT)")
+    cur.execute("CREATE TABLE networkTest11 (Key VARCHAR(50) PRIMARY KEY, TimeStamp VARCHAR(20), SourceMAC VARCHAR(20), DestinationMAC VARCHAR(20), Bandwidth INT, FLAG1 INT, FLAG2 INT, FLAG3 INT, FLAG4 INT, FLAG5 INT, FLAG6 INT, FLAG7 INT, FLAG8 INT, FLAG9 INT, FLAG10 INT)")
+    
+    conn.commit()
+    conn.close()

@@ -32,17 +32,21 @@ Output:
          ('192.168.1.126', '255.255.255.5', 'other', 9.0, 12.5),
          ('202.163.1.248', '255.255.244.5', 'other', 9.0, 12.5),
          ('155.163.5.155', '255.255.255.5', 'other', 9.0, 12.5)]
-
 '''
 
 import databaseReader as dr
 import databaseVerification as dv
 import databaseWriter as dw
 
-dv.verify()
-out = dr.read(output=True)
+#dw.databaseWriteTable()
+dr.getTableNames()
+
+#dv.verify()
+#dw.databaseWriteTable()
+out = dr.read(output=True, excel=True)
 print(out)
-data = (('999.163.1.248', '255.255.244.5', 'other', 9.0, 12.5),('155.163.5.995', '255.255.255.5', 'njii9u', 9.0, 12.5))
-dw.databaseWriteList(data)
-out = dr.read(output=True)
-print(out)
+
+#dw.databaseWriteList(data)
+
+#out = dr.read(output=True)
+#print(out)

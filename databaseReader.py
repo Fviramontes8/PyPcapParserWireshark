@@ -33,6 +33,7 @@ from config import config
 #query a table. Do not call this function
 def _databaseRead():
     try:
+        print("hello world")
         params = config()
 
         if params is None:
@@ -40,7 +41,7 @@ def _databaseRead():
 
         print('Connecting to the PostgreSQL database...')
         conn = psycopg2.connect(**params)
-        #conn = psycopg2.connect(dbname='networkinfodb',  user=username, password=password, host='192.168.1.121', port=5432)
+        
         print("Connected to host '192.168.1.121'")
     except:
         print("Unable to connect to the database!")
@@ -48,7 +49,7 @@ def _databaseRead():
     
     cur = conn.cursor()
     
-    cur.execute("""SELECT * from networkInfo""")
+    cur.execute("""SELECT * from networkTest11""")
     print("Data retrieved")
 
     output = cur.fetchall()
@@ -58,6 +59,27 @@ def _databaseRead():
         print('Database connection closed.')
 
     return output
+
+def getTableNames():
+    try:
+        print("hello world")
+        params = config()
+
+        if params is None:
+            return
+
+        print('Connecting to the PostgreSQL database...')
+        conn = psycopg2.connect(**params)
+        
+        print("Connected to host '192.168.1.121'")
+    except:
+        print("Unable to connect to the database!")
+        return
+    
+    cur = conn.cursor()
+    
+    cur.execute("select relname from pg_class where relkind='r' and relname !~ '^(pg_|sql_)';")
+    print cur.fetchall()
 
 #query a table interface. Use this function
 def read(path=None, excel = False, output = True):
@@ -106,7 +128,8 @@ def databaseWrite(databaseInput, output = False):
     
     
     query = "INSERT INTO networkInfo (Source, Destination, Type, Download, Upload) VALUES (%s, %s, %s, %s, %s)"
-        
+    query = "INSERT INTO networkTest5 (Source, Destination, Type, Download, Upload) VALUES (%s, %s, %s, %s, %s)"
+         
     if len(databaseInput) > 1:
         print("many")
         print(databaseInput)
