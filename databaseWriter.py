@@ -25,6 +25,8 @@ Example:
 '''
 
 import psycopg2
+from psycopg2 import sql
+import time
 from config import config
 
 def databaseWrite(databaseInput):
@@ -89,7 +91,7 @@ def databaseWriteList(databaseInput):
         conn.close()
         print('Database connection closed.')
         
-def databaseWriteTable():
+def databaseWriteTable(table_time = "asd", table_type=None):
     try:
         params = config()
 
@@ -105,9 +107,34 @@ def databaseWriteTable():
         return
     
     cur = conn.cursor()
-    
+    if table_type is None:
+        print("To create a table a table type must be defined. Use argument table_type to specify")
+        conn.close()
+        return
+
+    if table_time is None:
+        table_time = time.strftime("%m/%d/%Y")
+    table_name = table_time + table_type
+    #see if table exists
+    table_exists = tableExists(cur, table_name)
+
+    if table_exists is False:
     #cur.execute("CREATE TABLE networkTest (Key VARCHAR(30) PRIMARY KEY, SourceIP VARCHAR(20), DestinationIP VARCHAR(20), SourcePort INT, DestinationPort INT, PhysType VARCHAR(20), ChannelFlag INT, ChannelNumber INT, ChannelFrequency INT, DataRateIn INT, SignalStrength INT, Bandwidth INT)")
-    cur.execute("CREATE TABLE networkTest11 (Key VARCHAR(50) PRIMARY KEY, TimeStamp VARCHAR(20), SourceMAC VARCHAR(20), DestinationMAC VARCHAR(20), Bandwidth INT, FLAG1 INT, FLAG2 INT, FLAG3 INT, FLAG4 INT, FLAG5 INT, FLAG6 INT, FLAG7 INT, FLAG8 INT, FLAG9 INT, FLAG10 INT)")
-    
+        if table_type == "http":
+            args = "(Key VARCHAR(30) PRIMARY KEY, SourceIP VARCHAR(20), DestinationIP VARCHAR(20), SourcePort INT, DestinationPort INT, PhysType VARCHAR(20), ChannelFlag INT, ChannelNumber INT, ChannelFrequency INT, DataRateIn INT, SignalStrength INT, Bandwidth INT)"
+        else:
+            print("Table type " + table_type + " does not exist")
+            conn.close()
+            return
+        query = sql.SQL("CREATE TABLE {}" + args).format(sql.Identifier(table_time + table_type))
+        print("It's bananas")
+        cur.execute(query)
+        #cur.execute("CREATE TABLE networkTest11 (Key VARCHAR(50) PRIMARY KEY, TimeStamp VARCHAR(20), SourceMAC VARCHAR(20), DestinationMAC VARCHAR(20), Bandwidth INT, FLAG1 INT, FLAG2 INT, FLAG3 INT, FLAG4 INT, FLAG5 INT, FLAG6 INT, FLAG7 INT, FLAG8 INT, FLAG9 INT, FLAG10 INT)")
+    else:
+        print("Table already exists")
     conn.commit()
     conn.close()
+
+def tableExists(cursor, table_name):
+    cursor.execute("select exists(select * from information_schema.tables where table_name=%s)", (table_name,))
+    return cursor.fetchone()[0]
