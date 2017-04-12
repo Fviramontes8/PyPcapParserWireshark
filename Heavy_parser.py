@@ -73,10 +73,6 @@ for file_name in glob("*.pcap"):
         #"quarter": 0}
         #This dictionary gets everything ready to upload to a database
         ethFinal = {}
-        
-        #######################################################################
-        #anomaly = []
-        #######################################################################
                 
         n = 0
         for z in pktdata:
@@ -204,10 +200,11 @@ for file_name in glob("*.pcap"):
                     if pkt.wlan_radio.phy == "7":
                         phy = "n"
                     #Adding physical type to the dictionary
-#                    try:
-#                        ethDict[eth_src][eth_dst].append(phy)
-#                    except:
-#                        pass
+                    try:
+                        if ethDict[eth_src][eth_dst][16]:
+                            ethDict[eth_src][eth_dst][16] = phy
+                    except:
+                        ethDict[eth_src][eth_dst].append(phy)
                     #Signal strength in decibels
                     signal_strength = int(pkt.wlan_radio.signal_dbm)
                     #Adds to the signal strength part of the dictionary
