@@ -149,7 +149,7 @@ for file_name in glob("*.pcap"):
                 print "Uses " + proto + " protocol"
             except:
                 pass
-                    
+                #######################################    
             #Computing statistics from user A to user B
             try:         
                 #Source MAC address
