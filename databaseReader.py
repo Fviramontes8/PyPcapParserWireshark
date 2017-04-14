@@ -30,35 +30,7 @@ import pandas as pd
 import os
 from config import config
 
-#query a table. Do not call this function
-def _databaseRead():
-    try:
-        print("hello world")
-        params = config()
 
-        if params is None:
-            return
-
-        print('Connecting to the PostgreSQL database...')
-        conn = psycopg2.connect(**params)
-        
-        print("Connected to host '192.168.1.121'")
-    except:
-        print("Unable to connect to the database!")
-        return
-    
-    cur = conn.cursor()
-    
-    cur.execute("""SELECT * from networkTest11""")
-    print("Data retrieved")
-
-    output = cur.fetchall()
-
-    if conn is not None:
-        conn.close()
-        print('Database connection closed.')
-
-    return output
 
 def getTableNames():
     try:
@@ -80,6 +52,48 @@ def getTableNames():
     
     cur.execute("select relname from pg_class where relkind='r' and relname !~ '^(pg_|sql_)';")
     print cur.fetchall()
+
+def _databaseConnect():
+    try:
+        print("hello world")
+        params = config()
+
+        if params is None:
+            return
+
+        print('Connecting to the PostgreSQL database...')
+        conn = psycopg2.connect(**params)
+        
+        print("Connected to host '192.168.1.121'")
+        return conn
+    except:
+        print("Unable to connect to the database!")
+        return
+    
+
+#query a table. Do not call this function
+def _databaseRead():
+    conn = _databaseConnect()
+    
+    if conn is not None:
+        cur = conn.cursor()
+        table_name = "networkTest10"
+        query = 'select * from {} as a'.format(table_name)
+        cur.execute(query)
+        #cur.execute("""SELECT * from networkTest11""")
+        print("Data retrieved")
+    
+        output = cur.fetchall()
+    
+        if conn is not None:
+            conn.close()
+            print('Database connection closed.')
+    
+        return output
+        
+    else:
+        print("Could not connect to database")
+    return
 
 #query a table interface. Use this function
 def read(path=None, excel = False, output = True):
@@ -107,43 +121,3 @@ def read(path=None, excel = False, output = True):
     if output:
         return data
     
-
-def databaseWrite(databaseInput, output = False):
-    try:
-        params = config()
-
-        if params is None:
-            return
-
-        print('Connecting to the PostgreSQL database...')
-        conn = psycopg2.connect(**params)
-
-        print("Connected to host '192.168.1.121'")
-    except:
-        print("Unable to connect to the database!")
-        return
-    
-    
-    cur = conn.cursor()
-    
-    
-    query = "INSERT INTO networkInfo (Source, Destination, Type, Download, Upload) VALUES (%s, %s, %s, %s, %s)"
-    query = "INSERT INTO networkTest5 (Source, Destination, Type, Download, Upload) VALUES (%s, %s, %s, %s, %s)"
-         
-    if len(databaseInput) > 1:
-        print("many")
-        print(databaseInput)
-        cur.executemany(query, databaseInput)
-    else:
-        print("one")
-        cur.execute(query, (databaseInput))
-            
-    conn.commit()
-    print("Data written")
-    
-
-    #cur.close()
-    if conn is not None:
-        conn.close()
-        print('Database connection closed.')
-		

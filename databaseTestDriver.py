@@ -38,7 +38,7 @@ import databaseReader as dr
 import databaseVerification as dv
 import databaseWriter as dw
 
-#dw.databaseWriteTable()
+dw.databaseWriteTable(table_type="http2")
 dr.getTableNames()
 
 #dv.verify()
@@ -49,4 +49,3 @@ print(out)
 #dw.databaseWriteList(data)
 
 #out = dr.read(output=True)
-#print(out)
