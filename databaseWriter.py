@@ -46,10 +46,7 @@ def databaseWrite(databaseInput):
     
     cur = conn.cursor()
     
-    #query = "INSERT INTO networkInfo (Source, Destination, Type, Download, Upload) VALUES (%s, %s, %s, %s, %s)"
-    #query = "INSERT INTO networkInfo (Source, Destination, Type, Download, Upload) VALUES (%s, %s, %s, %d, %d, %s, %d, %d, %d, %d, %d, %d)"
-    #query = "INSERT INTO networkTest (Key, SourceIP, DestinationIP, SourcePort, DestinationPort, PhysType, ChannelFlag, ChannelNumber, ChannelFrequency, DataRateIn, SignalStrength, Bandwidth) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"    
-    query = "INSERT INTO networkTest11 (Key, Timestamp, SourceMAC, DestinationMAC, Bandwidth, flag1, flag2, flag3, flag4, flag5, flag6, flag7, flag8, flag9, flag10) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"    
+    query = "INSERT INTO networkTest11 (Key, Timestamp, SourceMAC, DestinationMAC, TotalBits, FlagPassive, Flag2GHz, FlagOFDM, FlagCCK, FlagGFSK, Flag5GHz, FlagGSM, FlagCCKOFDM, TotalPackets, SignalStrength, DataRate, Duration, PhysType) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"    
    
     cur.execute(query, databaseInput)
             
@@ -62,7 +59,7 @@ def databaseWrite(databaseInput):
         conn.close()
         print('Database connection closed.')
 
-def databaseWriteList(databaseInput):
+def databaseWriteList(databaseInput, table_time = "None", table_type = "None"):
     try:
         params = config()
 
@@ -76,11 +73,15 @@ def databaseWriteList(databaseInput):
     except:
         print("Unable to connect to the database!")
         return
-    
     cur = conn.cursor()
     
-    query = "INSERT INTO networkTest (Key, SourceIP, DestinationIP, SourcePort, DestinationPort, PhysType, ChannelFlag, ChannelNumber, ChannelFrequency, DataRateIn, SignalStrength, Bandwidth) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"    
-
+    #query = sql.SQL("CREATE TABLE {}" + args).format(sql.Identifier(table_time + table_type))
+    
+    query = sql.SQL("INSERT INTO {} (Key, Timestamp, SourceMAC, DestinationMAC, TotalBits, FlagPassive, Flag2GHz, FlagOFDM, FlagCCK, FlagGFSK, Flag5GHz, FlagGSM, FlagCCKOFDM, TotalPackets, SignalStrength, DataRate, Duration, DurationPreamble, PhysType) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)").format(sql.Identifier(table_time + table_type))   
+    if not tableExists(cur, table_time + table_type):
+        print("abana" + table_type)
+        databaseWriteTable(table_time, table_type)
+    
     cur.executemany(query, databaseInput)
  
     conn.commit()
@@ -91,7 +92,7 @@ def databaseWriteList(databaseInput):
         conn.close()
         print('Database connection closed.')
         
-def databaseWriteTable(table_time = "asd", table_type=None):
+def databaseWriteTable(table_time = None, table_type=None):
     try:
         params = config()
 
@@ -105,7 +106,7 @@ def databaseWriteTable(table_time = "asd", table_type=None):
     except:
         print("Unable to connect to the database!")
         return
-    
+    print(table_type)
     cur = conn.cursor()
     if table_type is None:
         print("To create a table a table type must be defined. Use argument table_type to specify")
@@ -113,22 +114,22 @@ def databaseWriteTable(table_time = "asd", table_type=None):
         return
 
     if table_time is None:
-        table_time = time.strftime("%m/%d/%Y")
+        table_time = time.strftime("%m-%d-%Y")
     table_name = table_time + table_type
     #see if table exists
-    table_exists = tableExists(cur, table_name)
 
-    if table_exists is False:
-    #cur.execute("CREATE TABLE networkTest (Key VARCHAR(30) PRIMARY KEY, SourceIP VARCHAR(20), DestinationIP VARCHAR(20), SourcePort INT, DestinationPort INT, PhysType VARCHAR(20), ChannelFlag INT, ChannelNumber INT, ChannelFrequency INT, DataRateIn INT, SignalStrength INT, Bandwidth INT)")
-        if table_type == "http":
-            args = "(Key VARCHAR(30) PRIMARY KEY, SourceIP VARCHAR(20), DestinationIP VARCHAR(20), SourcePort INT, DestinationPort INT, PhysType VARCHAR(20), ChannelFlag INT, ChannelNumber INT, ChannelFrequency INT, DataRateIn INT, SignalStrength INT, Bandwidth INT)"
+    if tableExists(cur, table_name) is False:
+        if table_type is not None:
+                    #(Key, Timestamp, SourceMAC, DestinationMAC, TotalBits, FlagPassive, Flag2GHz, FlagOFDM, FlagCCK, FlagGFSK, Flag5GHz, FlagGSM, FlagCCKOFDM, TotalPackets, SignalStrength, DataRate, Duration, PhysType)
+            args = "(Key VARCHAR(30) PRIMARY KEY, Timestamp INT, SourceMAC VARCHAR(20), DestinationMAC VARCHAR(20), TotalBits INT, FlagPassive INT, Flag2GHz INT, FlagOFDM INT, FlagCCK INT, FlagGFSK INT, Flag5GHz INT, FlagGSM INT, FlagCCKOFDM INT, TotalPackets INT, SignalStrength INT, DataRate INT, Duration INT, DurationPreamble INT, PhysType VARCHAR(3))"
         else:
             print("Table type " + table_type + " does not exist")
             conn.close()
             return
         query = sql.SQL("CREATE TABLE {}" + args).format(sql.Identifier(table_time + table_type))
-        print("It's bananas")
+        
         cur.execute(query)
+        print("Table created")
         #cur.execute("CREATE TABLE networkTest11 (Key VARCHAR(50) PRIMARY KEY, TimeStamp VARCHAR(20), SourceMAC VARCHAR(20), DestinationMAC VARCHAR(20), Bandwidth INT, FLAG1 INT, FLAG2 INT, FLAG3 INT, FLAG4 INT, FLAG5 INT, FLAG6 INT, FLAG7 INT, FLAG8 INT, FLAG9 INT, FLAG10 INT)")
     else:
         print("Table already exists")

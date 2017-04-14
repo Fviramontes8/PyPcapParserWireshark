@@ -26,6 +26,7 @@ To do:
 
 #import modules
 import psycopg2
+from psycopg2 import sql
 import pandas as pd
 import os
 from config import config
@@ -51,7 +52,10 @@ def getTableNames():
     cur = conn.cursor()
     
     cur.execute("select relname from pg_class where relkind='r' and relname !~ '^(pg_|sql_)';")
-    print cur.fetchall()
+    out = cur.fetchall()
+    table_names = [x[0] for x in out]
+    return table_names
+    
 
 def _databaseConnect():
     try:
@@ -72,13 +76,16 @@ def _databaseConnect():
     
 
 #query a table. Do not call this function
-def _databaseRead():
+def _databaseRead(table_name="None"):
+    if table_name not in getTableNames():
+        print("table " + str(table_name) + " does not exist")
+        return
     conn = _databaseConnect()
     
     if conn is not None:
         cur = conn.cursor()
-        table_name = "networkTest10"
-        query = 'select * from {} as a'.format(table_name)
+        print(table_name)
+        query = sql.SQL("select * from {} as a").format(sql.Identifier(table_name))
         cur.execute(query)
         #cur.execute("""SELECT * from networkTest11""")
         print("Data retrieved")
@@ -96,10 +103,10 @@ def _databaseRead():
     return
 
 #query a table interface. Use this function
-def read(path=None, excel = False, output = True):
+def read(table_name="None", path=None, excel = False, output = True):
 
     #query all data from database
-    data = _databaseRead()
+    data = _databaseRead(table_name)
     
     if excel == True:
         df = pd.DataFrame(data)
