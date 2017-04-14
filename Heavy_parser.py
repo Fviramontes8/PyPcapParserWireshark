@@ -98,11 +98,8 @@ for file_name in glob("*.pcap"):
             try:
                 #Source IP address of the packet
                 ip_src = pkt.ip.src
-                print "IPv4 src: " + ip_src
-                
                 #Destination IP address of the packet
                 ip_dst = pkt.ip.dst
-                print "IPv4 dst: " + ip_dst
                 
                 #If we encounter DNS packets we want to see which domains a user
                 # is looking for so we can see what services they may use.               
@@ -146,7 +143,7 @@ for file_name in glob("*.pcap"):
                     proto = "TCP"
                 if pkt.ip.proto == "17":
                     proto = "UDP"
-                print "Uses " + proto + " protocol"
+                #print "Uses " + proto + " protocol"
             except:
                 pass
              
@@ -167,14 +164,15 @@ for file_name in glob("*.pcap"):
                 #Format: {key : [timestamp, MAC src, MAC dst, 
                 # bits from src to dst, passive, 2GHz, ofdm, cck, gfsk, 5GHz,
                 # gsm, cck_ofdm, # of packets in conversation, cumulitive 
-                # signal strength,cumulitive data rate, duration (us)]}
+                # signal strength,cumulitive data rate, duration (us),
+                # preamble duration (us), phy type]}
                 if eth_src not in ethDict:
                     ethDict[eth_src] = {eth_dst : [ts, eth_src, eth_dst, \
-                    pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} 
+                    pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "0"]} 
                 #For multiple sources that have different destinations
                 elif eth_dst not in ethDict[eth_src]: 
                     ethDict[eth_src].update({eth_dst :[ts, eth_src, eth_dst, \
-                    pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]})
+                    pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, "0"]})
                 #Updates already existing converations in dictionary
                 else:
                     #Bits between user A and user B
@@ -205,11 +203,10 @@ for file_name in glob("*.pcap"):
                     #Adding physical type to the dictionary
                     try:
                         #Updates the most recent physical type (802.11b/g/n)
-                        if ethDict[eth_src][eth_dst][16]:
-                            ethDict[eth_src][eth_dst][16] = phy
+                        if ethDict[eth_src][eth_dst][17]:
+                            ethDict[eth_src][eth_dst][17] = phy
                     except:
-                        #If it is in the dictionary it will be added
-                        ethDict[eth_src][eth_dst].append(phy)
+                        pass
                     
                     #Signal strength in decibels
                     signal_strength = int(pkt.wlan_radio.signal_dbm)
@@ -232,10 +229,13 @@ for file_name in glob("*.pcap"):
                     ethDict[eth_src][eth_dst][15] += dur
                     
                     #Preamble duration in microseconds
-                    preamble = pkt.wlan_radio.preamble
+                    preamble = int(pkt.wlan_radio.preamble)
+                    #Adds preamble duration of packet to get cumulitive 
+                    # value (us)
+                    ethDict[eth_src][eth_dst][16] += preamble
+                    
                     print "Channel: " + str(channel)
                     print "Frequency: " + freq + " Mhz"
-                    print "Preamble duration: " + preamble + " us\n"
                 except:
                     pass
                 
@@ -277,7 +277,8 @@ for file_name in glob("*.pcap"):
         #Format:
         # {key:[key, timestamp, MAC src, MAC dst, bits from src to dst, passive,
         # 2GHz, ofdm, cck, gfsk, 5GHz, gsm, cck_ofdm, # of pkt in convo, 
-        # avg signal strength, avg data rate, cumulitive duration, physical type]}
+        # avg signal strength, avg data rate, cumulitive duration,
+        # cumulitive preamble duration, physical type]}
         print cflags_c
         for k in ethDict: 
                 for j in ethDict[k]:
