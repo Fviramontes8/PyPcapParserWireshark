@@ -38,14 +38,18 @@ import databaseReader as dr
 import databaseVerification as dv
 import databaseWriter as dw
 
-dw.databaseWriteTable(table_type="http2")
-dr.getTableNames()
-
+#dw.databaseWriteTable()
+out = dr.getTableNames()
+print(out)
 #dv.verify()
 #dw.databaseWriteTable()
-out = dr.read(output=True, excel=True)
+out = dr.read(table_name = '4/14/2017PROT3None', output=True, excel=True)
 print(out)
+            #key, timestamp, usea, useb, totalbits, flags0-8, #packets, avstr, avgdatarate, dur, durpre, bgn
+#data_list = []
+#data_list.append(["1231231231", 213123, "12312321", "12123123", 123, 0, 1, 2, 3, 4, 5, 6, 7, 22, -55, 33, 22, 2, 'b'])
+#data_list.append(["15645234", 123123, "623463245", "856773", 163, 7, 6, 5, 4, 3, 2, 1, 0, 12, -33, 27, 14, 2, 'g'])
 
-#dw.databaseWriteList(data)
+#dw.databaseWriteList(data_list, table_time="4/14/2017PROT3")
 
-#out = dr.read(output=True)
+#ut = dr.read(output=True)
