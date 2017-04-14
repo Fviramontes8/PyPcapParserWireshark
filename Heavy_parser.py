@@ -47,12 +47,12 @@ def check_flags(pkt, cflags):
     except:
         pass
 
-dns_addr = {}
+
 for file_name in glob("*.pcap"):
     #Opens .pcap files in working directory
     with open(file_name, "rb") as pcap_data:
         #Loads .pcap data into variable "pktdata"
-        pktdata = pyshark.FileCapture(pcap_data) 
+        pktdata = pyshark.FileCapture(pcap_data, keep_packets = False) 
         #Empty list of Unique MAC addresses
         uniqueMAC = []                            
         #Interger counter for number of users
@@ -62,7 +62,10 @@ for file_name in glob("*.pcap"):
         #List for IPv4 addresses
         ipv4 = []
         #List of dns answers for the pcap file (if there are any)
-        dns_list = []                             
+        dns_list = []
+        #Gets dns answers (if any) and puts in a dictionary ex:
+        # {ip_addr : website that it belongs to}
+        dns_addr = {}                             
         #Dictionary that holds Source MAC address, destination MAC addresses
         # and bits from source to destination
         ethDict = {}  
@@ -70,12 +73,14 @@ for file_name in glob("*.pcap"):
         cflags = {"cck": 0,"ofdm": 0,"twoghz": 0,"fiveghz": 0,\
         "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0} #,"half": 0,\
         #"quarter": 0}
-        #This dictionary gets everything ready to upload to a database
-        ethFinal = {}
-                
+        #This list gets everything ready to upload to a database
+        listFinal = []
+        
         n = 0
         for z in pktdata:
-            pkt = pktdata[n]
+            pkt = pktdata.next()
+            if n == 0:
+                pktfirst = pkt
             #Packet number
             print "Packet: " + str(n+1)
             #Timestamp in UTC/Epoch time
@@ -154,7 +159,7 @@ for file_name in glob("*.pcap"):
                 #Destination MAC address
                 eth_dst = pkt.wlan.da
                 #Integer version of time stamp
-                ts = int(float(pktdata[0].sniff_timestamp))
+                ts = int(float(pktfirst.sniff_timestamp))
                 
                 #Dictionary that takes and updates data sent between two users
                 # the zeros count how many times the channel flags occur.
@@ -257,9 +262,10 @@ for file_name in glob("*.pcap"):
                     pass
             
             n += 1  
+        pktlast = pkt
         
         #Gets time between final and first packet, this is computed to find bandwidth      
-        total_duration = float(pktdata[n-1].sniff_timestamp) - float(pktdata[0].sniff_timestamp)
+        total_duration = float(pktlast.sniff_timestamp) - float(pktfirst.sniff_timestamp)
         #In the case that there is only one packet in the pcap file
         if total_duration <= 0:
             total_duration = 1
@@ -279,25 +285,23 @@ for file_name in glob("*.pcap"):
         # 2GHz, ofdm, cck, gfsk, 5GHz, gsm, cck_ofdm, # of pkt in convo, 
         # avg signal strength, avg data rate, cumulitive duration,
         # cumulitive preamble duration, physical type]}
-        print cflags_c
         for k in ethDict: 
                 for j in ethDict[k]:
-                    l = str(int(float(pktdata[0].sniff_timestamp))) + str(k) + str(j)
-                    if l not in ethFinal:
-                        ethFinal[l] = ethDict[k][j] #[l] + #
+                    l = str(int(float(pktfirst.sniff_timestamp))) + str(k) + str(j)
+                    listFinal.append([l] + ethDict[k][j])
         
         #Finally, we print everything
         if numOfUsers > 0: 
             print "Number of Users: "+str(numOfUsers)
-            for z in uniqueMAC:
-                print z
-            print "Number of packets for this file: " + str(len(pktdata))
-            print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
+#            for z in uniqueMAC:
+#                print z
+#            print "Number of packets for this file: " + str(len(pktdata))
+#            print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
             
             #Prints flags if they occured at least once
-            for k in cflags:
-                if cflags[k] > 0:
-                    print k + ": " + str(cflags[k])
+#            for k in cflags:
+#                if cflags[k] > 0:
+#                    print k + ": " + str(cflags[k])
             
             #This goes through the ipv4 list and replaces matching IP addresses
             # with the full qualified domain name so that we can determine 
@@ -306,7 +310,7 @@ for file_name in glob("*.pcap"):
                 for h in dns_addr:
                     if ipv4[n] == h:
                         ipv4[n] = dns_addr[h]
-            print ethFinal
+            print listFinal
             print"\n"
             print ipv4
             print"\n"
