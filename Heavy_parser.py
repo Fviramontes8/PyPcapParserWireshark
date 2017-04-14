@@ -3,7 +3,8 @@ import pyshark
 
 ##################################################################
 
-# Take a look at what causes memory leakage, 
+# Take a look at what causes memory leakage, keeping the program running
+# (maybe a command prompt script??), and finalize adding to the table.
 
 #########################################################
 
@@ -132,7 +133,8 @@ for file_name in glob("*.pcap"):
                 except:
                    pass
                 
-                #Unique source/destination IP addresses are taken and added to a list   
+                #Unique source/destination IP addresses are taken and added 
+                # to a list   
                 if ip_src not in ipv4:
                     ipv4.append(ip_src)
                     
@@ -162,10 +164,10 @@ for file_name in glob("*.pcap"):
                 # For example, if 3 2GHz cck signals were are between users 
                 # the output of the flag counter would look like this:'
                 # [..., ..., ..., ..., 0, 3, 0, 3, 0, 0, 0, 0]
-                #Format: {key : [timestamp, src, dst, 
-                # bits from src to dst, passive, 2GHz, ofdm, cck, 
-                # gfsk, 5GHz, gsm, cck_ofdm, avg_divider, cumulitive signal
-                # strength, cumulitive data rate, duration (us), physical type]}
+                #Format: {key : [timestamp, MAC src, MAC dst, 
+                # bits from src to dst, passive, 2GHz, ofdm, cck, gfsk, 5GHz,
+                # gsm, cck_ofdm, # of packets in conversation, cumulitive 
+                # signal strength,cumulitive data rate, duration (us)]}
                 if eth_src not in ethDict:
                     ethDict[eth_src] = {eth_dst : [ts, eth_src, eth_dst, \
                     pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} 
@@ -173,7 +175,7 @@ for file_name in glob("*.pcap"):
                 elif eth_dst not in ethDict[eth_src]: 
                     ethDict[eth_src].update({eth_dst :[ts, eth_src, eth_dst, \
                     pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]})
-                #Updates bits in dictionary
+                #Updates already existing converations in dictionary
                 else:
                     #Bits between user A and user B
                     ethDict[eth_src][eth_dst][3] += pktBits
@@ -231,7 +233,6 @@ for file_name in glob("*.pcap"):
                     
                     #Preamble duration in microseconds
                     preamble = pkt.wlan_radio.preamble
-                    print "Physical type: 802.11" + phy
                     print "Channel: " + str(channel)
                     print "Frequency: " + freq + " Mhz"
                     print "Preamble duration: " + preamble + " us\n"
@@ -254,7 +255,6 @@ for file_name in glob("*.pcap"):
                     
                 except:
                     pass
-                
             
             n += 1  
         
@@ -276,8 +276,8 @@ for file_name in glob("*.pcap"):
         #Puts ethDict into a more readable dictionary, ready to give to a database 
         #Format:
         # {key:[key, timestamp, MAC src, MAC dst, bits from src to dst, passive,
-        # 2GHz, ofdm, cck, gfsk, 5GHz, gsm, cck_ofdm, avg_divider, avg_signal
-        # strength, avg_data rate, cumulitive duration, physical type]}
+        # 2GHz, ofdm, cck, gfsk, 5GHz, gsm, cck_ofdm, # of pkt in convo, 
+        # avg signal strength, avg data rate, cumulitive duration, physical type]}
         print cflags_c
         for k in ethDict: 
                 for j in ethDict[k]:
