@@ -1,15 +1,56 @@
+''' 
+Authors: Francisco Viramontes, Seth Decker
+
+Description: This program is a packet parser intended to firstly, take 
+ statistical information from all the users in one pcap file in the working 
+ folder and organizes it between a set amount of conversations between two 
+ users and displays it in a list. 
+ 
+ Secondly, it is also intended to take all unique IP addresses that are in the
+ pcap file and put it into a list. 
+ 
+ Lastly, the parser will see if there are any packets that use the Domain Name 
+ Service protocol (dns) and check the dns packets for answers. If the dns 
+ packets have answers it will try to read them and put them into a dictionary
+ so that they can use the list of unique IP addresses and see what websites 
+ were visited to determine what services (Video, Audio, VoIP, etc) were used.
+
+Input: Any pcap file that has packets that use 802.11 protocols, this parser 
+ DOES NOT WORK with pcap files that captured packets via Ethernet connection.
+ This parser has only worked with pcap files from wireshark so far.
+
+Output: This parser has 3 intended outputs
+
+ The statistical converation list (Displays two converations between four users)
+ [['14914988132c:56:xx:xx:50:e1ff:ff:ff:ff:ff:ff', 1491498813, 
+ '2c:56:xx:xx:50:e1','ff:ff:ff:ff:ff:ff', 9880, 0, 5, 0, 5, 0, 0, 0, 0, 4, -102,
+ 1, 0, 0, 'b'], ['149149881300:0b:xx:xx:59:c020:68:xx:xx:d4:74', 1491498813, 
+ '00:0b:xx:xx:59:c0','20:68:xx:xx:d4:74', 9814768, 0, 873, 59, 0, 0, 0, 0, 814,
+ 872, -36, 55, 0, 0, 'n']]
+
+ Unique IP address list
+ ['91.189.91.26', '10.81.198.43', '72.21.91.29']
+
+ dns answer dictionary
+ {'172.217.5.78':'www.youtube.com', '52.26.140.68':'services.addons.mozilla.org',
+ '216.58.193.194':'securepubads.g.doubleclick.net', '172.217.5.67':'fonts.gstatic.com', 
+ '208.77.78.221': 'www.google.com', '54.191.164.105': 'aus5.mozilla.org', 
+ '54.68.139.233': 'services.addons.mozilla.org', '172.217.4.131': 'www.gstatic.com',
+ '52.11.31.31': 'incoming.telemetry.mozilla.org', '35.166.101.77': 'aus5.mozilla.org'}
+'''
+
 from glob import glob
 import pyshark
 
 ##################################################################
 
-# Take a look at what causes memory leakage, keeping the program running
-# (maybe a command prompt script??), and finalize adding to the table.
+# Take a look at keeping the program running (maybe a command prompt script??),
+# and finalize list to add to the table.
 
 #########################################################
 
 #This function checks specific channel flags of a packet
-# also updates a dictionary counting channel flags
+# also updates ethDict
 def check_flags(pkt, cflags):
     try:
         #Complementary Code Keying
@@ -36,69 +77,64 @@ def check_flags(pkt, cflags):
         #GSM at 900 MHz
         if pkt.channel_flags_gsm != "0":
             cflags["gsm"] += 1 
-        '''#Uses a half rate channel (10 MHz channel width)
-        if pkt.channel_flags_half != "0":
-            cflags["half"] += 1
-        #Uses a quarter rate channel (5MHz channel width)
-        if pkt.channel_flags_quarter != "0":
-            cflags["quarter"] += 1'''
         #Returns the updated dictionary
         return cflags
     except:
         pass
 
-
-for file_name in glob("*.pcap"):
-    #Opens .pcap files in working directory
+#Looks for any pcap files in working directory
+for file_name in sorted(glob("*.pcap")):
+    #If there are any, it will open them as pcap_data
     with open(file_name, "rb") as pcap_data:
         #Loads .pcap data into variable "pktdata"
-        pktdata = pyshark.FileCapture(pcap_data, keep_packets = False) 
+        pktdata = pyshark.FileCapture(pcap_data, keep_packets = False)
         #Empty list of Unique MAC addresses
         uniqueMAC = []                            
-        #Interger counter for number of users
+        #Interger counter for number of users based on unique MAC address
         numOfUsers= 0                               
         #Cumulitive Bits
         cumulBits = 0                          
-        #List for IPv4 addresses
+        #List for unique IPv4 addresses
         ipv4 = []
         #List of dns answers for the pcap file (if there are any)
         dns_list = []
-        #Gets dns answers (if any) and puts in a dictionary ex:
-        # {ip_addr : website that it belongs to}
+        #Gets dns answers (if any) and puts in a dictionary.
+        # It has this format: {ip_addr : website that it belongs to}
         dns_addr = {}                             
-        #Dictionary that holds Source MAC address, destination MAC addresses
-        # and bits from source to destination
+        #Dictionary that reads on organizes statistics from packets
         ethDict = {}  
-        #Cumulitive channel Flag counter
+        #Cumulitive channel flag counter
         cflags = {"cck": 0,"ofdm": 0,"twoghz": 0,"fiveghz": 0,\
-        "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0} #,"half": 0,\
-        #"quarter": 0}
+        "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0} 
         #This list gets everything ready to upload to a database
         listFinal = []
         
         n = 0
         for z in pktdata:
+###############################################################################
+            #Needs to be documented
             pkt = pktdata.next()
             if n == 0:
                 pktfirst = pkt
+################################################################################
             #Packet number
             print "Packet: " + str(n+1)
             #Timestamp in UTC/Epoch time
-            #print pkt.sniff_timestamp
+            ##print pkt.sniff_timestamp
             
             #Channel Flag counter between two users
             cflags_c = {"cck": 0,"ofdm": 0,"twoghz": 0,"fiveghz": 0,\
-            "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0} #,"half": 0,\
-            #"quarter": 0}
+            "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0} 
             
             #Computing bits in packet n and adding to cumulitive bits
             try:
                 #Amount of bits from the nth packet
                 pktBits = int(pkt.length) * 8
-                #Simple calculation of cumulitive bits
+                #Calculation of cumulitive bits
                 cumulBits += pktBits
             except:
                 pass
+                
             #Taking a look at IPv4 information
             try:
                 #Source IP address of the packet
@@ -148,7 +184,6 @@ for file_name in glob("*.pcap"):
                     proto = "TCP"
                 if pkt.ip.proto == "17":
                     proto = "UDP"
-                #print "Uses " + proto + " protocol"
             except:
                 pass
              
@@ -161,22 +196,19 @@ for file_name in glob("*.pcap"):
                 #Integer version of time stamp
                 ts = int(float(pktfirst.sniff_timestamp))
                 
-                #Dictionary that takes and updates data sent between two users
-                # the zeros count how many times the channel flags occur.
-                # For example, if 3 2GHz cck signals were are between users 
-                # the output of the flag counter would look like this:'
-                # [..., ..., ..., ..., 0, 3, 0, 3, 0, 0, 0, 0]
-                #Format: {key : [timestamp, MAC src, MAC dst, 
-                # bits from src to dst, passive, 2GHz, ofdm, cck, gfsk, 5GHz,
-                # gsm, cck_ofdm, # of packets in conversation, cumulitive 
-                # signal strength,cumulitive data rate, duration (us),
-                # preamble duration (us), phy type]}
+                #Dictionary that takes and updates statistics sent between two 
+                # users. This is the Format: 
+                # {key : [timestamp, MAC src, MAC dst, bits from src to dst, 
+                # passive, 2GHz, ofdm, cck, gfsk, 5GHz, gsm, cck_ofdm,
+                # number of packets in conversation, cumulitive signal strength,
+                # cumulitive data rate, duration (us), preamble duration (us),
+                # physical type]}
                 if eth_src not in ethDict:
-                    ethDict[eth_src] = {eth_dst : [ts, eth_src, eth_dst, \
+                    ethDict[eth_src] = {eth_dst : [ts, eth_src, eth_dst,\
                     pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "0"]} 
                 #For multiple sources that have different destinations
                 elif eth_dst not in ethDict[eth_src]: 
-                    ethDict[eth_src].update({eth_dst :[ts, eth_src, eth_dst, \
+                    ethDict[eth_src].update({eth_dst :[ts, eth_src, eth_dst,\
                     pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, "0"]})
                 #Updates already existing converations in dictionary
                 else:
@@ -189,7 +221,7 @@ for file_name in glob("*.pcap"):
                 check_flags(pkt.radiotap,cflags)
                 check_flags(pkt.radiotap,cflags_c)
                 
-                #This little block updates channel flags betweens users
+                #This block updates channel flags betweens users in ethDict
                 iterator = 4
                 for f in cflags:
                     if iterator < 12:
@@ -261,59 +293,63 @@ for file_name in glob("*.pcap"):
                 except:
                     pass
             
-            n += 1  
-        pktlast = pkt
-        
-        #Gets time between final and first packet, this is computed to find bandwidth      
-        total_duration = float(pktlast.sniff_timestamp) - float(pktfirst.sniff_timestamp)
-        #In the case that there is only one packet in the pcap file
-        if total_duration <= 0:
-            total_duration = 1
+            n += 1
+###############################################################################
+#Needs documentation
+        if n != 0:
+            pktlast = pkt
+###############################################################################
+                
+            #Average for signal strength and data rate:
+            try:
+                for k in ethDict:
+                    for j in ethDict[k]:
+                        #Number of packets in converation/total signal strength
+                        ethDict[k][j][13] = ethDict[k][j][13]/ethDict[k][j][12]
+                        #Number of packets in converation/total data rate
+                        ethDict[k][j][14] = ethDict[k][j][14]/ethDict[k][j][12]
+            except:
+                pass
             
-        #Average for signal strength and data rate:
-        try:
-            for k in ethDict:
-                for j in ethDict[k]:
-                    ethDict[k][j][13] = ethDict[k][j][13]/ethDict[k][j][12]
-                    ethDict[k][j][14] = ethDict[k][j][14]/ethDict[k][j][12]
-        except:
-            pass
-        
-        #Puts ethDict into a more readable dictionary, ready to give to a database 
-        #Format:
-        # {key:[key, timestamp, MAC src, MAC dst, bits from src to dst, passive,
-        # 2GHz, ofdm, cck, gfsk, 5GHz, gsm, cck_ofdm, # of pkt in convo, 
-        # avg signal strength, avg data rate, cumulitive duration,
-        # cumulitive preamble duration, physical type]}
-        for k in ethDict: 
-                for j in ethDict[k]:
-                    l = str(int(float(pktfirst.sniff_timestamp))) + str(k) + str(j)
-                    listFinal.append([l] + ethDict[k][j])
-        
-        #Finally, we print everything
-        if numOfUsers > 0: 
-            print "Number of Users: "+str(numOfUsers)
-#            for z in uniqueMAC:
-#                print z
-#            print "Number of packets for this file: " + str(len(pktdata))
-#            print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
+            #Puts ethDict into a more readable list, ready to push to a database 
+            #Format:
+            # [key, timestamp, MAC src, MAC dst, bits from src to dst, passive,
+            # 2GHz, ofdm, cck, gfsk, 5GHz, gsm, cck_ofdm, # of pkt in convo, 
+            # avg signal strength, avg data rate, cumulitive duration,
+            # cumulitive preamble duration, physical type]
+            for k in ethDict: 
+                    for j in ethDict[k]:
+                        #The key is made by concatenating the timestamp with
+                        # source and destination MAC addresses
+                        l = str(int(float(pktfirst.sniff_timestamp))) + str(k) + str(j)
+                        listFinal.append([l] + ethDict[k][j])
             
-            #Prints flags if they occured at least once
-#            for k in cflags:
-#                if cflags[k] > 0:
-#                    print k + ": " + str(cflags[k])
-            
-            #This goes through the ipv4 list and replaces matching IP addresses
-            # with the full qualified domain name so that we can determine 
-            # services
-            for n in range(0, len(ipv4)):
-                for h in dns_addr:
-                    if ipv4[n] == h:
-                        ipv4[n] = dns_addr[h]
-            print listFinal
-            print"\n"
-            print ipv4
-            print"\n"
-            print dns_addr
-        else:
-            print "There are no users/data for this pcap file: " + str(file_name)
+            #Finally, we print everything
+            if numOfUsers > 0: 
+                print "Number of Users: "+str(numOfUsers)
+#                for z in uniqueMAC: #prints unique MAC addresses
+#                    print z
+#                print "Number of packets for this file: " + str(len(pktdata))
+#                print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
+                
+                #Prints flags if they occured at least once
+#                for k in cflags:
+#                    if cflags[k] > 0:
+#                        print k + ": " + str(cflags[k])
+                
+                #This goes through the ipv4 list and replaces matching IP addresses
+                # with the full qualified domain name so that we can determine 
+                # services
+                for n in range(0, len(ipv4)):
+                    for h in dns_addr:
+                        if ipv4[n] == h:
+                            ipv4[n] = dns_addr[h]
+                
+                #The three intended outputs
+                print listFinal
+                print"\n"
+                print ipv4
+                print"\n"
+                print dns_addr
+            else:
+                print "There are no users/data for this pcap file: " + str(file_name)
