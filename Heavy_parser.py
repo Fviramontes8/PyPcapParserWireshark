@@ -21,7 +21,7 @@ Input: Any pcap file that has packets that use 802.11 protocols, this parser
 
 Output: This parser has 3 intended outputs
 
- The statistical converation list (Displays two converations between four users)
+ The statistical conversation list (Displays two converations between four users)
  [['14914988132c:56:xx:xx:50:e1ff:ff:ff:ff:ff:ff', 1491498813, 
  '2c:56:xx:xx:50:e1','ff:ff:ff:ff:ff:ff', 9880, 0, 5, 0, 5, 0, 0, 0, 0, 4, -102,
  1, 0, 0, 'b'], ['149149881300:0b:xx:xx:59:c020:68:xx:xx:d4:74', 1491498813, 
@@ -190,9 +190,9 @@ for file_name in sorted(glob("*.pcap")):
             #Computing statistics from user A to user B
             try:         
                 #Source MAC address
-                eth_src = pkt.wlan.sa
+                mac_src = pkt.wlan.sa
                 #Destination MAC address
-                eth_dst = pkt.wlan.da
+                mac_dst = pkt.wlan.da
                 #Integer version of time stamp
                 ts = int(float(pktfirst.sniff_timestamp))
                 
@@ -203,19 +203,19 @@ for file_name in sorted(glob("*.pcap")):
                 # number of packets in conversation, cumulitive signal strength,
                 # cumulitive data rate, duration (us), preamble duration (us),
                 # physical type]}
-                if eth_src not in ethDict:
-                    ethDict[eth_src] = {eth_dst : [ts, eth_src, eth_dst,\
+                if mac_src not in ethDict:
+                    ethDict[mac_src] = {mac_dst : [ts, mac_src, mac_dst,\
                     pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "0"]} 
                 #For multiple sources that have different destinations
-                elif eth_dst not in ethDict[eth_src]: 
-                    ethDict[eth_src].update({eth_dst :[ts, eth_src, eth_dst,\
+                elif mac_dst not in ethDict[mac_src]: 
+                    ethDict[mac_src].update({mac_dst :[ts, mac_src, mac_dst,\
                     pktBits, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, "0"]})
-                #Updates already existing converations in dictionary
+                #Updates already existing conversations in dictionary
                 else:
                     #Bits between user A and user B
-                    ethDict[eth_src][eth_dst][3] += pktBits
+                    ethDict[mac_src][mac_dst][3] += pktBits
                     #Number of packets between user A and user B
-                    ethDict[eth_src][eth_dst][12] += 1
+                    ethDict[mac_src][mac_dst][12] += 1
                     
                 #Function calls for checking/updating channel flags   
                 check_flags(pkt.radiotap,cflags)
@@ -225,7 +225,7 @@ for file_name in sorted(glob("*.pcap")):
                 iterator = 4
                 for f in cflags:
                     if iterator < 12:
-                        ethDict[eth_src][eth_dst][iterator] += cflags_c[f]
+                        ethDict[mac_src][mac_dst][iterator] += cflags_c[f]
                         iterator += 1
                 
                 #Looking at signal properties of the packet
@@ -240,20 +240,20 @@ for file_name in sorted(glob("*.pcap")):
                     #Adding physical type to the dictionary
                     try:
                         #Updates the most recent physical type (802.11b/g/n)
-                        if ethDict[eth_src][eth_dst][17]:
-                            ethDict[eth_src][eth_dst][17] = phy
+                        if ethDict[mac_src][mac_dst][17]:
+                            ethDict[mac_src][mac_dst][17] = phy
                     except:
                         pass
                     
                     #Signal strength in decibels
                     signal_strength = int(pkt.wlan_radio.signal_dbm)
                     #Adds to the signal strength part of the dictionary
-                    ethDict[eth_src][eth_dst][13] += signal_strength
+                    ethDict[mac_src][mac_dst][13] += signal_strength
                     
                     #Data rate from source to destination in Mb/s
                     d_rate = int(pkt.wlan_radio.data_rate)
                     #Adds to the data rate part of the dictionary
-                    ethDict[eth_src][eth_dst][14] += d_rate
+                    ethDict[mac_src][mac_dst][14] += d_rate
                     
                     #Gives what channel is being used
                     channel = int(pkt.wlan_radio.channel)
@@ -263,13 +263,13 @@ for file_name in sorted(glob("*.pcap")):
                     #Duration in microseconds
                     dur = int(pkt.wlan_radio.duration)
                     #Adds duration of the packet to get cumulitive value (us)
-                    ethDict[eth_src][eth_dst][15] += dur
+                    ethDict[mac_src][mac_dst][15] += dur
                     
                     #Preamble duration in microseconds
                     preamble = int(pkt.wlan_radio.preamble)
                     #Adds preamble duration of packet to get cumulitive 
                     # value (us)
-                    ethDict[eth_src][eth_dst][16] += preamble
+                    ethDict[mac_src][mac_dst][16] += preamble
                     
                     print "Channel: " + str(channel)
                     print "Frequency: " + freq + " Mhz"
@@ -278,11 +278,11 @@ for file_name in sorted(glob("*.pcap")):
                 
                 #This adds all unique MAC addresses to a list and counts number 
                 # of users based on number of unique MAC addresses
-                if eth_src not in uniqueMAC:
-                    uniqueMAC.append(eth_src)
+                if mac_src not in uniqueMAC:
+                    uniqueMAC.append(mac_src)
                     numOfUsers += 1
-                if eth_dst not in uniqueMAC:
-                    uniqueMAC.append(eth_dst)
+                if mac_dst not in uniqueMAC:
+                    uniqueMAC.append(mac_dst)
                     numOfUsers += 1 
             except:
                 try:
