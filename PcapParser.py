@@ -1,13 +1,18 @@
 ''' 
 Authors: Francisco Viramontes, Seth Decker
 
-Description: This program is a packet parser intended to firstly, take 
- statistical information from all the users in one pcap file in the working 
- folder and organizes it between a set amount of conversations between two 
- users and displays it in a list. 
- 
- Secondly, it is also intended to take all unique IP addresses that are in the
- pcap file and put it into a list. 
+Description: This program is a packet parser intended to accomplish two
+ things: take statistical information from all the users in one pcap file 
+ in the working folder and organizes it between a set amount of conversations
+ between two users and displays it in a list in the format of: 
+     
+ [Key(To upload to a database), Timestamp,  mac source, mac destination,
+ ip source(if there is none, it will say "None"), 
+ ip destination(if there is none, it will say "None"), 
+ bits from source to destination, passive, 2GHz, ofdm, cck, gfsk,
+ 5GHz, gsm, cck_ofdm, number of packets in the conversation, 
+ average signal strength, average data rate, duration in microseconds(us),
+ preamble duration in microseconds(us),  physical type]. 
  
  Lastly, the parser will see if there are any packets that use the Domain Name 
  Service protocol (dns) and check the dns packets for answers. If the dns 
@@ -19,19 +24,17 @@ Input: Any pcap file that has packets that use 802.11 protocols, this parser
  DOES NOT WORK with pcap files that captured packets via Ethernet connection.
  This parser has only worked with pcap files from wireshark so far.
 
-Output: This parser has 3 intended outputs
+Output: This parser has 2 intended outputs
 
- The statistical converation list (Displays two converations between four users)
- [['14914988132c:56:xx:xx:50:e1ff:ff:ff:ff:ff:ff', 1491498813, 
- '2c:56:xx:xx:50:e1','ff:ff:ff:ff:ff:ff', 9880, 0, 5, 0, 5, 0, 0, 0, 0, 4, -102,
- 1, 0, 0, 'b'], ['149149881300:0b:xx:xx:59:c020:68:xx:xx:d4:74', 1491498813, 
- '00:0b:xx:xx:59:c0','20:68:xx:xx:d4:74', 9814768, 0, 873, 59, 0, 0, 0, 0, 814,
- 872, -36, 55, 0, 0, 'n']]
+ The statistical converation list(Displays two converations between four users)
+ [['14914988132c:56:xx:xx:50:e1ff:ff:ff:ff:ff:ff', 1491498813,
+ '2c:56:xx:xx:50:e1','ff:ff:ff:ff:ff:ff', '91.189.91.26', '10.81.198.43' 9880,
+ 0, 5, 0, 5, 0, 0, 0, 0, 4, -102, 1, 0, 0, 'b'], 
+ ['149149881300:0b:xx:xx:59:c020:68:xx:xx:d4:74', 1491498813, 
+ '00:0b:xx:xx:59:c0','20:68:xx:xx:d4:74', '10.81.198.43', '72.21.91.29'
+ 9814768, 0, 873, 59, 0, 0, 0, 0, 814, 872, -36, 55, 0, 0, 'n']]
 
- Unique IP address list
- ['91.189.91.26', '10.81.198.43', '72.21.91.29']
-
- dns answer dictionary
+ DNS answer dictionary
  {'172.217.5.78':'www.youtube.com', '52.26.140.68':'services.addons.mozilla.org',
  '216.58.193.194':'securepubads.g.doubleclick.net', '172.217.5.67':'fonts.gstatic.com', 
  '208.77.78.221': 'www.google.com', '54.191.164.105': 'aus5.mozilla.org', 
@@ -50,7 +53,7 @@ import pyshark
 #########################################################
 
 #This function checks specific channel flags of a packet
-# also updates ethDict
+# also updates statDict
 def check_flags(pkt, cflags):
     try:
         #Complementary Code Keying
@@ -266,7 +269,7 @@ for file_name in sorted(glob("*.pcap")):
                     #Adds duration of the packet to get cumulitive value (us)
                     statDict[mac_src][mac_dst][ip_src][ip_dst][17] += dur
                     
-                    #Preamble duration in microseconds
+                    #Preamble duration in microseconds(us)
                     preamble = int(pkt.wlan_radio.preamble)
                     #Adds preamble duration of packet to get cumulitive 
                     # value (us)
@@ -311,13 +314,13 @@ for file_name in sorted(glob("*.pcap")):
             except:
                 pass
             
-            #Puts ethDict into a more readable list, ready to push to a database 
+            #Puts statDict into a more readable list, ready to push to a database 
             #Format:
             # [key, timestamp, MAC src, MAC dst, ip src, ip dest, 
             # bits from src to dst, passive, 2GHz, ofdm, cck, gfsk,
             # 5GHz, gsm, cck_ofdm, # of pkt in convo, 
-            # avg signal strength, avg data rate, cumulitive duration,
-            # cumulitive preamble duration, physical type]
+            # avg signal strength, avg data rate, cumulitive duration(us),
+            # cumulitive preamble duration(us), physical type]
             for k in statDict: 
                 for j in statDict[k]:
                     for m in statDict[k][j]:
@@ -329,16 +332,8 @@ for file_name in sorted(glob("*.pcap")):
                             
             #Finally, we print everything
             if numOfUsers > 0: 
-#                print "Number of Users: "+str(numOfUsers)
-#                for z in uniqueMAC: #prints unique MAC addresses
-#                    print z
 #                print "Number of packets for this file: " + str(len(pktdata))
 #                print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
-                
-                #Prints flags if they occured at least once
-#                for k in cflags:
-#                    if cflags[k] > 0:
-#                        print k + ": " + str(cflags[k])
                 
                 #The two intended outputs
                 print listFinal
