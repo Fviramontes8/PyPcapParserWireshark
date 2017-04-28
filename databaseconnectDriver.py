@@ -35,20 +35,26 @@ Output:
 '''
 
 import DatabaseConnect as dc
-import time
 
 database = dc.DatabaseConnect()
-
+print("hello")
 database.connect()
+#database.writeDataTable()
+print("hello2")
 print(database.getTableNames())
 data_list = []
-data_list.append([50, 213123, "12312321", "12123123", 123, 0, 1, 2, 3, 4, 5, 6, 7, 22, -55, 33, 22, 2, 'b'])
-data_list.append([14, 123123, "623463245", "856773", 163, 7, 6, 5, 4, 3, 2, 1, 0, 12, -33, 27, 14, 2, 'g'])
+
+database.writeData(data_list)
+
+#database.writeData("")
+database.writeIP((3, "1.1.1.3"))
+print(database.readIPTable())
+#print(database.getNextDataKey())
 #a = time.time()
 #dw.databaseWriteList(data_list, table_type="bananafanabobana")
 #b = time.time()
-#ut = dr.read(table_name = 'Nonebananafanabobana', output=True)
-#print(ut)
+#but = dr.read(table_name = 'Nonebananafanabobana', output=True)
+#print(but)
 
 #dw.databaseWriteIPTable()
 #dw.databaseWriteMACTable()

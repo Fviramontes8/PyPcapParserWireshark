@@ -14,10 +14,16 @@ class DatabaseConnect(object):
         self.data_table_name = "DataTable"
         
         self.data_table_query = "(Key, Timestamp, SourceMAC, DestinationMAC, TotalBits, FlagPassive, Flag2GHz, FlagOFDM, FlagCCK, FlagGFSK, Flag5GHz, FlagGSM, FlagCCKOFDM, TotalPackets, SignalStrength, DataRate, Duration, DurationPreamble, PhysType) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        self.mac_table_query = "(Key INT PRIMARY KEY, MACAddress VARCHAR(20)) VALUES (%s, %s)"
-        self.ip_table_query = "(Key INT PRIMARY KEY, IPAddress VARCHAR(20)) VALUES (%s, %s)"
+        self.mac_table_query = "(Key , MACAddress) VALUES (%s, %s)"
+        self.ip_table_query = "(Key , IPAddress) VALUES (%s, %s)"
         
-        
+    def _checkConnection(self):
+        if self.conn is None:
+            print("No connection established. Use obj.connect() to connect to database.")
+            return False
+        else:
+            return True  
+    
     def _config(self, filename='database.ini', section='postgresql'):
         # create a parser
         parser = ConfigParser()
@@ -40,7 +46,7 @@ class DatabaseConnect(object):
             print("Configuration file does not exist")
             return None
 
-    def _tableExists(cursor, table_name):
+    def _tableExists(self, cursor, table_name):
         cursor.execute("select exists(select * from information_schema.tables where table_name=%s)", (table_name,))
         return cursor.fetchone()[0]
 
@@ -49,20 +55,48 @@ class DatabaseConnect(object):
         print("returned mac address.")
         
     def getMACAddressKey(self, mac_address):
+        
+        #query for address
+        #if it doesn't exist add mac_address to list
+        #add new key set to max
+        #return key
         print("returned mac address key.")
         
     def getIPAddress(self, ip_address_key):
-        print("returned ip address.")
+        if self._checkConnection():
+            cur = self.conn.cursor()
+            query = sql.SQL("SELECT * FROM {} WHERE IPAddress = (SELECT IPAddress FROM {} WHERE id = {})").format(sql.Identifier(self.data_table_name), sql.Identifier(self.data_table_name), sql.Identifier(ip_address_key))
+            cur.execute(query)
+            latest_key = cur.fetchall()
+            return latest_key
+            print("returned ip address.")
         
     def getIPAddressKey(self, ip_address):
         print("returned ip address key.")
-        
-    def readData(self):
-        if _checkConnection():
-            cur = conn.cursor()
-            print(table_name)
-            query = sql.SQL("select * from {} as a").format(sql.Identifier(data_table_name))
 
+    
+    def getNextKey(self, table_name):
+        if self._checkConnection():
+            cur = self.conn.cursor()
+            query = sql.SQL("SELECT MAX(Key) from {}").format(sql.Identifier(table_name))
+            cur.execute(query)
+            latest_key = cur.fetchall()
+            res_list = [x[0] for x in latest_key]
+            return res_list[0]
+
+    def getNextMACKey(self):
+        return self.getNextKey(self.mac_address_table_name)
+        
+    def getNextIPKey(self):
+        return self.getNextKey(self.ip_address_table_name)
+        
+    def getNextDataKey(self):
+        return self.getNextKey(self.data_table_name)
+        
+    def readTable(self, table_name):
+        if self._checkConnection():
+            cur = self.conn.cursor()
+            query = sql.SQL("select * from {} as a").format(sql.Identifier(table_name))
             cur.execute(query)
             print("Data retrieved")
         
@@ -71,8 +105,17 @@ class DatabaseConnect(object):
             return output
         return
         
-    def writeData(new_table_data):
-        if _checkConnection():
+    def readDataTable(self):
+        return self.readTable(self.data_table_name)
+         
+    def readIPTable(self):
+        return self.readTable(self.ip_address_table_name)
+    
+    def readMACTable(self):
+        return self.readTable(self.mac_address_table_name)
+        
+    def writeData(self, new_table_data):
+        if self._checkConnection():
             cur = self.conn.cursor()
             
             query = sql.SQL("INSERT INTO {} " + self.data_table_query).format(sql.Identifier(self.data_table_name))   
@@ -80,7 +123,27 @@ class DatabaseConnect(object):
             cur.executemany(query, new_table_data)
         
             self.conn.commit()
+            
+    def writeIP(self, new_ip_data):
+        if self._checkConnection():
+            cur = self.conn.cursor()
+            
+            query = sql.SQL("INSERT INTO {} " + self.ip_table_query).format(sql.Identifier(self.ip_address_table_name))   
+            
+            cur.execute(query, new_ip_data)
         
+            self.conn.commit()
+    
+    def writeMAC(self, new_mac_data):
+        if self._checkConnection():
+            cur = self.conn.cursor()
+            
+            query = sql.SQL("INSERT INTO {} " + self.mac_table_query).format(sql.Identifier(self.mac_address_table_name))   
+            
+            cur.execute(query, new_mac_data)
+        
+            self.conn.commit()     
+               
     def connect(self):
         try:
             params = self._config()
@@ -99,36 +162,24 @@ class DatabaseConnect(object):
         if self.conn is not None:
             self.conn.close()
     
-    #ignore this function                
-    def writeTable(table_time = None, table_type=None):
-        return
-        cur = self.conn.cursor()
-        
-        #see if table exists
-    
-        if _tableExists(cur, table_name) is False:
-            if table_type is not None:
-            else:
-                print("Table type " + table_type + " does not exist")
-                return
-            query = sql.SQL("CREATE TABLE {}" + args).format(sql.Identifier(self.data_table_name))
-            
-            cur.execute(query)
-            print("Table created")
-        else:
-            print("Table already exists")
 
-    def _checkConnection(self):
-        if self.conn is None:
-            print("No connection established. Use obj.connect() to connect to database.")
-            return False
-        else:
-            return True    
+    def writeDataTable(self):
+        if self._checkConnection():
+            args = "(Key INT PRIMARY KEY, Timestamp INT, SourceMAC VARCHAR(20), DestinationMAC VARCHAR(20), TotalBits INT, FlagPassive INT, Flag2GHz INT, FlagOFDM INT, FlagCCK INT, FlagGFSK INT, Flag5GHz INT, FlagGSM INT, FlagCCKOFDM INT, TotalPackets INT, SignalStrength INT, DataRate INT, Duration INT, DurationPreamble INT, PhysType VARCHAR(3))"
+            query = sql.SQL("CREATE TABLE {} " + args).format(sql.Identifier(self.data_table_name))
+            
+            self.conn.cursor().execute(query)
+
+            self.conn.commit()
+
     def getTableNames(self):
-        if _checkConnection():
+        if self._checkConnection():
             cur = self.conn.cursor()
     
             cur.execute("select relname from pg_class where relkind='r' and relname !~ '^(pg_|sql_)';")
             out = cur.fetchall()
             table_names = [x[0] for x in out]
             return table_names
+        
+    def convertTimetoEpoch(self, time):
+        return 0
