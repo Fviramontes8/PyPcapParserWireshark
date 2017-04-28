@@ -52,27 +52,65 @@ class DatabaseConnect(object):
 
     ## Public Functions
     def getMACAddress(self, mac_address_key):
-        print("returned mac address.")
+        if self._checkConnection():
+            cur = self.conn.cursor()
+            #query = sql.SQL("SELECT * FROM {} WHERE key = (SELECT key FROM {} WHERE key = {})").format(sql.Identifier(self.data_table_name), sql.Identifier(self.data_table_name), sql.Identifier(str(ip_address_key)))
+            
+            query = sql.SQL("SELECT macaddress FROM {} WHERE key =  %(name)s").format(sql.Identifier(self.mac_address_table_name), sql.Identifier(str(mac_address_key)))
+            
+            cur.execute(query, {"name" : str(mac_address_key)})
+            address = cur.fetchone()
+            if address is not None:
+                return address[0]
+            else:
+                #add to database
+                print("doesn't exist")
+            
         
     def getMACAddressKey(self, mac_address):
-        
-        #query for address
-        #if it doesn't exist add mac_address to list
-        #add new key set to max
-        #return key
-        print("returned mac address key.")
+        if self._checkConnection():
+            cur = self.conn.cursor()
+            #query = sql.SQL("SELECT * FROM {} WHERE key = (SELECT key FROM {} WHERE key = {})").format(sql.Identifier(self.data_table_name), sql.Identifier(self.data_table_name), sql.Identifier(str(ip_address_key)))
+            
+            query = sql.SQL("SELECT key FROM {} WHERE macaddress =  %(name)s").format(sql.Identifier(self.mac_address_table_name), sql.Identifier(mac_address))
+            
+            cur.execute(query, {"name" : str(mac_address)})
+            key = cur.fetchone()
+            if key is not None:
+                return key[0]
+            
         
     def getIPAddress(self, ip_address_key):
         if self._checkConnection():
             cur = self.conn.cursor()
-            query = sql.SQL("SELECT * FROM {} WHERE IPAddress = (SELECT IPAddress FROM {} WHERE id = {})").format(sql.Identifier(self.data_table_name), sql.Identifier(self.data_table_name), sql.Identifier(ip_address_key))
-            cur.execute(query)
-            latest_key = cur.fetchall()
-            return latest_key
-            print("returned ip address.")
+            #query = sql.SQL("SELECT * FROM {} WHERE key = (SELECT key FROM {} WHERE key = {})").format(sql.Identifier(self.data_table_name), sql.Identifier(self.data_table_name), sql.Identifier(str(ip_address_key)))
+            
+            query = sql.SQL("SELECT ipaddress FROM {} WHERE key =  %(name)s").format(sql.Identifier(self.ip_address_table_name), sql.Identifier(str(ip_address_key)))
+            
+            cur.execute(query, {"name" : str(ip_address_key)})
+            address = cur.fetchone()
+            if address is not None:
+                return address[0]
+            else:
+                #add to database
+                print("Entry doesn't exist.")
+                
         
     def getIPAddressKey(self, ip_address):
-        print("returned ip address key.")
+        if self._checkConnection():
+            cur = self.conn.cursor()
+            #query = sql.SQL("SELECT * FROM {} WHERE key = (SELECT key FROM {} WHERE key = {})").format(sql.Identifier(self.data_table_name), sql.Identifier(self.data_table_name), sql.Identifier(str(ip_address_key)))
+            
+            query = sql.SQL("SELECT key FROM {} WHERE ipaddress =  %(name)s").format(sql.Identifier(self.ip_address_table_name), sql.Identifier(ip_address))
+            
+            cur.execute(query, {"name" : str(ip_address)})
+            key = cur.fetchone()
+            if key is not None:
+                return key[0]
+            else:
+                self.writeIPData((self.getNextIPKey()+1, ip_address))
+                cur.execute(query, {"name" : str(ip_address)})
+                return cur.fetchone()[0]
 
     
     def getNextKey(self, table_name):
@@ -113,36 +151,46 @@ class DatabaseConnect(object):
     
     def readMACTable(self):
         return self.readTable(self.mac_address_table_name)
+    
+    def _writeData(self, table_name, query, new_data):
+        print(query)
+        print(table_name)
+        print(new_data)
         
-    def writeData(self, new_table_data):
         if self._checkConnection():
             cur = self.conn.cursor()
             
-            query = sql.SQL("INSERT INTO {} " + self.data_table_query).format(sql.Identifier(self.data_table_name))   
+            query = sql.SQL("INSERT INTO {} " + query).format(sql.Identifier(table_name))   
             
-            cur.executemany(query, new_table_data)
-        
-            self.conn.commit()
-            
-    def writeIP(self, new_ip_data):
-        if self._checkConnection():
-            cur = self.conn.cursor()
-            
-            query = sql.SQL("INSERT INTO {} " + self.ip_table_query).format(sql.Identifier(self.ip_address_table_name))   
-            
-            cur.execute(query, new_ip_data)
+            # need to discriminate single and multiple data
+            cur.execute(query, new_data)
         
             self.conn.commit()
     
-    def writeMAC(self, new_mac_data):
+    def writeData(self, new_table_data):
+        self._writeData(self.data_table_name, self.data_table_query, new_table_data)
+            
+    def writeIPData(self, new_ip_data):
+        self._writeData(self.ip_address_table_name, self.ip_table_query, new_ip_data)
+    
+    def writeMACData(self, new_mac_data):
+        self._writeData(self.mac_address_table_name, self.data_mac_query, new_mac_data)
+        
+    def _deleteData(self, key, table_name):
         if self._checkConnection():
             cur = self.conn.cursor()
-            
-            query = sql.SQL("INSERT INTO {} " + self.mac_table_query).format(sql.Identifier(self.mac_address_table_name))   
-            
-            cur.execute(query, new_mac_data)
+            query = sql.SQL("delete from {} where Key={}").format(sql.Identifier(table_name), sql.Identifier(key))
+            cur.execute(query)
+    def deleteIPData(self, key):
+        self._deleteData(self.ip_address_table_name, key)
         
-            self.conn.commit()     
+    def deleteMACData(self, key):  
+        self._deleteData(self.mac_address_table_name, key) 
+        
+    def deleteData(self, key):  
+        self._deleteData(self.data_table_name, key) 
+                                        
+    
                
     def connect(self):
         try:

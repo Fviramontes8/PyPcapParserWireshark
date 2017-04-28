@@ -39,22 +39,17 @@ import DatabaseConnect as dc
 database = dc.DatabaseConnect()
 print("hello")
 database.connect()
-#database.writeDataTable()
-print("hello2")
+
 print(database.getTableNames())
 data_list = []
 
-database.writeData(data_list)
+#database.writeData(data_list)
 
 #database.writeData("")
-database.writeIP((3, "1.1.1.3"))
+#database.writeIP((3, "1.1.1.3"))
 print(database.readIPTable())
-#print(database.getNextDataKey())
-#a = time.time()
-#dw.databaseWriteList(data_list, table_type="bananafanabobana")
-#b = time.time()
-#but = dr.read(table_name = 'Nonebananafanabobana', output=True)
-#print(but)
-
-#dw.databaseWriteIPTable()
-#dw.databaseWriteMACTable()
+print(database.getNextMACKey())
+#print(database.describe())
+print(database.getIPAddress(7))
+print(database.getIPAddressKey("1.1.1.1"))
+print(database.getIPAddressKey("1.1.1.5"))
