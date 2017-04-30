@@ -44,6 +44,7 @@ Output: This parser has 2 intended outputs
 
 from glob import glob
 import pyshark
+import time
 
 ##################################################################
 
@@ -51,7 +52,9 @@ import pyshark
 # and finalize list to add to the table.
 
 #########################################################
-
+def getDatabaseKey(v):
+    pass
+    
 #This function checks specific channel flags of a packet
 # also updates statDict
 def check_flags(pkt, cflags):
@@ -84,13 +87,16 @@ def check_flags(pkt, cflags):
         return cflags
     except:
         pass
-
+v = 0
+start_time = time.time()
 #Looks for any pcap files in working directory
 for file_name in sorted(glob("*.pcap")):
     #If there are any, it will open them as pcap_data
     with open(file_name, "rb") as pcap_data:
+        getDatabaseKey(v)
         #Loads .pcap data into variable "pktdata"
-        pktdata = pyshark.FileCapture(pcap_data, keep_packets = False)
+        pktdata = pyshark.FileCapture(pcap_data, keep_packets = False, \
+            decryption_key = 'AEg1shj4lmR', encryption_type="wpa-pwd")
         #Empty list of Unique MAC addresses
         uniqueMAC = []                            
         #Interger counter for number of users based on unique MAC address
@@ -117,7 +123,7 @@ for file_name in sorted(glob("*.pcap")):
             pkt = pktdata.next()
             if n == 0:
                 pktfirst = pkt
-################################################################################
+###############################################################################
             n += 1
             #Packet number
             print "Packet: " + str(n)
@@ -171,6 +177,20 @@ for file_name in sorted(glob("*.pcap")):
                     dns_addr[pkt.dns.a_6] = fqdn
                     dns_addr[pkt.dns.a_7] = fqdn
                     dns_addr[pkt.dns.a_8] = fqdn
+                except:
+                   pass
+                try:
+                    #Now we try DNS response packets for phones
+                    dns_addr[pkt.mdns.dns_a] = fqdn
+                    dns_addr[pkt.mdns.dns_a_0] = fqdn
+                    dns_addr[pkt.mdns.dns_a_1] = fqdn
+                    dns_addr[pkt.mdns.dns_a_2] = fqdn
+                    dns_addr[pkt.mdns.dns_a_3] = fqdn
+                    dns_addr[pkt.mdns.dns_a_4] = fqdn
+                    dns_addr[pkt.mdns.dns_a_5] = fqdn
+                    dns_addr[pkt.mdns.dns_a_6] = fqdn
+                    dns_addr[pkt.mdns.dns_a_7] = fqdn
+                    dns_addr[pkt.mdns.dns_a_8] = fqdn
                 except:
                    pass
                 
@@ -329,6 +349,7 @@ for file_name in sorted(glob("*.pcap")):
                             # source and destination MAC addresses
                             l = str(int(float(pktfirst.sniff_timestamp))) + str(k) + str(j)
                             listFinal.append(statDict[k][j][m][n])#[l] + #
+                            v += 1
                             
             #Finally, we print everything
             if numOfUsers > 0: 
@@ -336,8 +357,11 @@ for file_name in sorted(glob("*.pcap")):
 #                print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
                 
                 #The two intended outputs
-                print listFinal
+                for h in listFinal:
+                    print h
                 print"\n"
-                print dns_addr
+                for h in dns_addr:
+                    print h + dns_addr[h]
+                print("--- %s seconds ---" % (time.time() - start_time))
             else:
                 print "There are no users/data for this pcap file: " + str(file_name)
