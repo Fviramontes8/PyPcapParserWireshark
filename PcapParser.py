@@ -1,5 +1,5 @@
 ''' 
-Authors: Francisco Viramontes, Seth Decker
+Authors: Francisco Viramontes, Seth Decker, Nestor Pereira, Mario Esparza
 
 Description: This program is a packet parser intended to accomplish two
  things: take statistical information from all the users in one pcap file 
@@ -12,7 +12,8 @@ Description: This program is a packet parser intended to accomplish two
  bits from source to destination, passive, 2GHz, ofdm, cck, gfsk,
  5GHz, gsm, cck_ofdm, number of packets in the conversation, 
  average signal strength, average data rate, duration in microseconds(us),
- preamble duration in microseconds(us),  physical type]. 
+ preamble duration in microseconds(us),  physical type b, physical type g,
+ physical type n, channel]. 
  
  Lastly, the parser will see if there are any packets that use the Domain Name 
  Service protocol (dns) and check the dns packets for answers. If the dns 
@@ -35,15 +36,17 @@ Output: This parser has 2 intended outputs
  9814768, 0, 873, 59, 0, 0, 0, 0, 814, 872, -36, 55, 0, 0, 'n']]
 
  DNS answer dictionary
- {'172.217.5.78':'www.youtube.com', '52.26.140.68':'services.addons.mozilla.org',
- '216.58.193.194':'securepubads.g.doubleclick.net', '172.217.5.67':'fonts.gstatic.com', 
+ {'172.217.5.78':'www.youtube.com', '35.166.101.77': 'aus5.mozilla.org',
+ '216.58.193.194':'securepubads.g.doubleclick.net',
  '208.77.78.221': 'www.google.com', '54.191.164.105': 'aus5.mozilla.org', 
- '54.68.139.233': 'services.addons.mozilla.org', '172.217.4.131': 'www.gstatic.com',
- '52.11.31.31': 'incoming.telemetry.mozilla.org', '35.166.101.77': 'aus5.mozilla.org'}
+ '54.68.139.233': 'services.addons.mozilla.org', 
+ '52.11.31.31': 'incoming.telemetry.mozilla.org'}
 '''
 
 from glob import glob
 import pyshark
+#import psycopg2
+#import configparser
 import time
 
 ##################################################################
@@ -95,8 +98,7 @@ for file_name in sorted(glob("*.pcap")):
     with open(file_name, "rb") as pcap_data:
         getDatabaseKey(v)
         #Loads .pcap data into variable "pktdata"
-        pktdata = pyshark.FileCapture(pcap_data, keep_packets = False, \
-            decryption_key = 'AEg1shj4lmR', encryption_type="wpa-pwd")
+        pktdata = pyshark.FileCapture(pcap_data, keep_packets = False)
         #Empty list of Unique MAC addresses
         uniqueMAC = []                            
         #Interger counter for number of users based on unique MAC address
@@ -113,17 +115,16 @@ for file_name in sorted(glob("*.pcap")):
         #Cumulitive channel flag counter
         cflags = {"cck": 0,"ofdm": 0,"twoghz": 0,"fiveghz": 0,\
         "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0} 
+        #Cumulative physical type counter
+        ptype = {"b": 0,"g": 0,"n": 0}
         #This list gets everything ready to upload to a database
         listFinal = []
         
         n = 0
-        for z in pktdata:
-###############################################################################
+        for pkt in pktdata:
             #Needs to be documented
-            pkt = pktdata.next()
             if n == 0:
                 pktfirst = pkt
-###############################################################################
             n += 1
             #Packet number
             print "Packet: " + str(n)
@@ -134,6 +135,9 @@ for file_name in sorted(glob("*.pcap")):
             #Channel Flag counter between two users
             cflags_c = {"cck": 0,"ofdm": 0,"twoghz": 0,"fiveghz": 0,\
             "passive": 0,"cck_ofdm": 0,"gfsk": 0,"gsm": 0} 
+            
+            #Physical type counter between two users
+            ptype_c = {"b": 0,"g": 0,"n": 0}
             
             #Computing bits in packet n and adding to cumulitive bits
             try:
@@ -213,26 +217,27 @@ for file_name in sorted(glob("*.pcap")):
                 # bits from src to dst,  passive, 2GHz, ofdm, cck, gfsk,
                 # 5GHz, gsm, cck_ofdm, number of packets in conversation,
                 # cumulitive signal strength, cumulitive data rate,
-                # duration (us), preamble duration (us),  physical type]}
+                # duration (us), preamble duration (us),  physical type b,
+                # physical type g, physical type n, channel]}
                 if mac_src not in statDict:
                     statDict[mac_src] = {mac_dst : {ip_src : {ip_dst : [ts,\
                     mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0, 0, 0,\
-                    0, 0, 0, 0, 1 , 0, 0, 0, 0, "0"]}}} 
+                    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, '0']}}} 
                 #For multiple sources that have different destinations
                 elif mac_dst not in statDict[mac_src]: 
                     statDict[mac_src].update({mac_dst : {ip_src : {ip_dst :\
                     [ts, mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0,\
-                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, "0"]}}})
+                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, '0']}}})
                 #If the source IP changes we want to record the conversation
                 elif ip_src not in statDict[mac_src][mac_dst]:
                     statDict[mac_src][mac_dst].update({ip_src : {ip_dst :\
                     [ts, mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0,\
-                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, "0"]}})
+                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, '0']}})
                 #If the desination IP changes we also want to record the convo
                 elif ip_dst not in statDict[mac_src][mac_dst][ip_src]:
                     statDict[mac_src][mac_dst][ip_src].update({ip_dst :\
                     [ts, mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0,\
-                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, "0"]})
+                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, '0']})
                 #Updates already existing converations in dictionary
                 else:
                     #Bits between user A and user B
@@ -256,34 +261,54 @@ for file_name in sorted(glob("*.pcap")):
                 try:
                     #Determines the physical type, 802.11b/g/n
                     if pkt.wlan_radio.phy == "4":
-                        phy = "b"
+                        #802.11b
+                        ptype_c["b"] += 1
                     if pkt.wlan_radio.phy == "6":
-                        phy = "g"
+                        #802.11g
+                        ptype_c["g"] += 1
                     if pkt.wlan_radio.phy == "7":
-                        phy = "n"
-                    #Adding physical type to the dictionary
+                        #802.11n
+                        ptype_c["n"] += 1
+                        
+                    #Updates physical type to the dictionary
                     try:
-                        #Updates the most recent physical type (802.11b/g/n)
-                        if statDict[mac_src][mac_dst][ip_src][ip_dst][19]:
-                            statDict[mac_src][mac_dst][ip_src][ip_dst][19] = phy
+                        #Increases counter for physical type (802.11b)
+                        statDict[mac_src][mac_dst][ip_src][ip_dst][19]\
+                        += ptype_c["b"]
+                    except:
+                        pass
+                    try:
+                        #Increases counter for physical type (802.11g)
+                        statDict[mac_src][mac_dst][ip_src][ip_dst][20]\
+                        += ptype_c["g"]
+                    except:
+                        pass
+                    try:
+                        #Increases counter for physical type (802.11n)
+                        statDict[mac_src][mac_dst][ip_src][ip_dst][21]\
+                        += ptype_c["n"]
                     except:
                         pass
                     
                     #Signal strength in decibels
                     signal_strength = int(pkt.wlan_radio.signal_dbm)
                     #Adds to the signal strength part of the dictionary
-                    statDict[mac_src][mac_dst][ip_src][ip_dst][15] += signal_strength
+                    statDict[mac_src][mac_dst][ip_src][ip_dst][15]\
+                    += signal_strength
                     
                     #Data rate from source to destination in Mb/s
                     d_rate = int(pkt.wlan_radio.data_rate)
                     #Adds to the data rate part of the dictionary
                     statDict[mac_src][mac_dst][ip_src][ip_dst][16] += d_rate
-                    
+
                     #Gives what channel is being used
                     channel = int(pkt.wlan_radio.channel)
-                    #Channel frequency of the packet in MHz
-                    freq = pkt.wlan_radio.frequency
-                    
+                    try:
+                        #Updates the channel type (1-11)
+                        statDict[mac_src][mac_dst][ip_src][ip_dst][22]=channel
+                    except:
+                        pass
+
                     #Duration in microseconds
                     dur = int(pkt.wlan_radio.duration)
                     #Adds duration of the packet to get cumulitive value (us)
@@ -295,8 +320,6 @@ for file_name in sorted(glob("*.pcap")):
                     # value (us)
                     statDict[mac_src][mac_dst][ip_src][ip_dst][18] += preamble
                     
-                    print "Channel: " + str(channel)
-                    print "Frequency: " + freq + " Mhz"
                 except:
                     pass
                 
@@ -317,11 +340,8 @@ for file_name in sorted(glob("*.pcap")):
                 except:
                     pass
         
-###############################################################################
-#Needs documentation
         if n != 0:
             pktlast = pkt
-###############################################################################
                 
             #Average for signal strength and data rate:
             try:
@@ -340,14 +360,16 @@ for file_name in sorted(glob("*.pcap")):
             # bits from src to dst, passive, 2GHz, ofdm, cck, gfsk,
             # 5GHz, gsm, cck_ofdm, # of pkt in convo, 
             # avg signal strength, avg data rate, cumulitive duration(us),
-            # cumulitive preamble duration(us), physical type]
+            # cumulitive preamble duration(us), physical type b,
+            # physical type g, physical type n, channel]
             for k in statDict: 
                 for j in statDict[k]:
                     for m in statDict[k][j]:
                         for n in statDict[k][j][m]:
                             #The key is made by concatenating the timestamp with
                             # source and destination MAC addresses
-                            l = str(int(float(pktfirst.sniff_timestamp))) + str(k) + str(j)
+                            l = str(int(float(pktfirst.sniff_timestamp)))\
+                            + str(k) + str(j)
                             listFinal.append(statDict[k][j][m][n])#[l] + #
                             v += 1
                             
@@ -361,7 +383,7 @@ for file_name in sorted(glob("*.pcap")):
                     print h
                 print"\n"
                 for h in dns_addr:
-                    print h + dns_addr[h]
+                    print h + " " + dns_addr[h]
                 print("--- %s seconds ---" % (time.time() - start_time))
             else:
                 print "There are no users/data for this pcap file: " + str(file_name)
