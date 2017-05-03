@@ -123,13 +123,16 @@ class DatabaseConnect(object):
             return res_list[0]
 
     def getNextMACKey(self):
-        return self.getNextKey(self.mac_address_table_name)
+        a = self.getNextKey(self.mac_address_table_name)
+        return a + 1
         
     def getNextIPKey(self):
-        return self.getNextKey(self.ip_address_table_name)
+        a = self.getNextKey(self.ip_address_table_name)
+        return a + 1 
         
     def getNextDataKey(self):
-        return self.getNextKey(self.data_table_name)
+        a = self.getNextKey(self.data_table_name)
+        return a + 1
         
     def readTable(self, table_name):
         if self._checkConnection():
