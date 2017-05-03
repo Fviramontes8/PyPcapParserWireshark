@@ -42,14 +42,19 @@ database.connect()
 
 print(database.getTableNames())
 data_list = []
+#   key timestamp mackeysrc mackeydst ipkeysrc ipkeydst  bits, channel flags(pass, 2.4, ofdm, cck, gfsk, 5ghz, gsm, cckofdm) #pkts, avg sig str, avg data rate, duration(us), preamble(us), counter b, counter g, counter, n, channel#
+data_list.append((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24))  
+data_list.append((2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25))
 
-#database.writeData(data_list)
+print(len(data_list))
+#database.writeDataTable()
+#database.writeIPData((6, "1.1.1.6"))
+database.writeData(data_list)
 
-#database.writeData("")
 #database.writeIP((3, "1.1.1.3"))
-print(database.readIPTable())
-print(database.getNextMACKey())
-#print(database.describe())
-print(database.getIPAddress(7))
-print(database.getIPAddressKey("1.1.1.1"))
-print(database.getIPAddressKey("1.1.1.5"))
+#print(database.readIPTable())
+#print(database.getNextMACKey())
+#print(database.getIPAddress(7))
+#print(database.getIPAddressKey("1.1.1.1"))
+#print(database.getIPAddressKey("1.1.1.5"))
+#print(database.getNextDataKey())
