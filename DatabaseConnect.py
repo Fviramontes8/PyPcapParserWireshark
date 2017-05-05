@@ -1,3 +1,38 @@
+'''
+author: Seth Decker
+
+Description: This code interfaces to a database. It can build tables, read tables, and write to tables.
+
+
+Example:
+
+    #Read data table
+>>> import DatabaseConnect as dc
+    
+    database = dc.DatabaseConnect()
+    
+    database.connect()
+    
+    print(database.readDataTable())
+    
+    database.disconnect()
+
+
+    #Write data table
+>>> import DatabaseConnect as dc
+    
+    database = dc.DatabaseConnect()
+
+    data_list = []
+    data_list.append((1, 2, "dummy", "dummy", "dummy", "dummy", 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24))  
+    data_list.append((2, 3, "dummy", "dummy", "dummy", "dummy", 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25))
+
+    database.writeData(data_list)
+
+    database.disconnect()
+
+'''
+
 from configparser import ConfigParser
 import os
 import psycopg2
@@ -11,9 +46,9 @@ class DatabaseConnect(object):
 
         self.mac_address_table_name = "MACAddressTable"
         self.ip_address_table_name = "IPAddressTable"
-        self.data_table_name = "DataTable"
+        self.data_table_name = "raw_data_table"
         
-        self.data_table_query = "(Key, Timestamp, SourceMAC, DestinationMAC, TotalBits, FlagPassive, Flag2GHz, FlagOFDM, FlagCCK, FlagGFSK, Flag5GHz, FlagGSM, FlagCCKOFDM, TotalPackets, SignalStrength, DataRate, Duration, DurationPreamble, PhysType) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        self.data_table_query = "(Key, Timestamp, SourceMACKey, DestinationMACKey, SourceIPKey, DestinationIPKey, TotalBits, FlagPassive, Flag2GHz, FlagOFDM, FlagCCK, FlagGFSK, Flag5GHz, FlagGSM, FlagCCKOFDM, NumPackets, SignalStrength, DataRate, Duration, DurationPreamble, CounterB, CounterG, CounterN, Channel) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)" 
         self.mac_table_query = "(Key , MACAddress) VALUES (%s, %s)"
         self.ip_table_query = "(Key , IPAddress) VALUES (%s, %s)"
         
@@ -166,7 +201,7 @@ class DatabaseConnect(object):
             query = sql.SQL("INSERT INTO {} " + query).format(sql.Identifier(table_name))   
             
             # need to discriminate single and multiple data
-            cur.execute(query, new_data)
+            cur.executemany(query, new_data)
         
             self.conn.commit()
     
@@ -216,7 +251,10 @@ class DatabaseConnect(object):
 
     def writeDataTable(self):
         if self._checkConnection():
-            args = "(Key INT PRIMARY KEY, Timestamp INT, SourceMAC VARCHAR(20), DestinationMAC VARCHAR(20), TotalBits INT, FlagPassive INT, Flag2GHz INT, FlagOFDM INT, FlagCCK INT, FlagGFSK INT, Flag5GHz INT, FlagGSM INT, FlagCCKOFDM INT, TotalPackets INT, SignalStrength INT, DataRate INT, Duration INT, DurationPreamble INT, PhysType VARCHAR(3))"
+            #moving key->value to post processing
+            args = "(Key INT PRIMARY KEY, Timestamp INT, SourceMACKey VARCHAR(20), DestinationMACKey VARCHAR(20), SourceIPKey VARCHAR(20), DestinationIPKey VARCHAR(20), TotalBits INT, FlagPassive INT, Flag2GHz INT, FlagOFDM INT, FlagCCK INT, FlagGFSK INT, Flag5GHz INT, FlagGSM INT, FlagCCKOFDM INT, NumPackets INT, SignalStrength INT, DataRate INT, Duration INT, DurationPreamble INT, CounterB INT, CounterG INT, CounterN INT, Channel INT)"
+            #args = "(Key INT PRIMARY KEY, Timestamp INT, SourceMACKey INT, DestinationMACKey INT, SourceIPKey INT, DestinationIPKey INT, TotalBits INT, FlagPassive INT, Flag2GHz INT, FlagOFDM INT, FlagCCK INT, FlagGFSK INT, Flag5GHz INT, FlagGSM INT, FlagCCKOFDM INT, NumPackets INT, SignalStrength INT, DataRate INT, Duration INT, DurationPreamble INT, CounterB INT, CounterG INT, CounterN INT, Channel INT)"
+            
             query = sql.SQL("CREATE TABLE {} " + args).format(sql.Identifier(self.data_table_name))
             
             self.conn.cursor().execute(query)
@@ -231,6 +269,3 @@ class DatabaseConnect(object):
             out = cur.fetchall()
             table_names = [x[0] for x in out]
             return table_names
-        
-    def convertTimetoEpoch(self, time):
-        return 0
