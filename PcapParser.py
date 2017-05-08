@@ -28,12 +28,10 @@ Input: Any pcap file that has packets that use 802.11 protocols, this parser
 Output: This parser has 2 intended outputs
 
  The statistical converation list(Displays two converations between four users)
- [['14914988132c:56:xx:xx:50:e1ff:ff:ff:ff:ff:ff', 1491498813,
- '2c:56:xx:xx:50:e1','ff:ff:ff:ff:ff:ff', '91.189.91.26', '10.81.198.43' 9880,
- 0, 5, 0, 5, 0, 0, 0, 0, 4, -102, 1, 0, 0, 'b'], 
- ['149149881300:0b:xx:xx:59:c020:68:xx:xx:d4:74', 1491498813, 
- '00:0b:xx:xx:59:c0','20:68:xx:xx:d4:74', '10.81.198.43', '72.21.91.29'
- 9814768, 0, 873, 59, 0, 0, 0, 0, 814, 872, -36, 55, 0, 0, 'n']]
+ [[5, 1491498813, '2c:56:xx:xx:50:e1','ff:ff:ff:ff:ff:ff', '91.189.91.26',
+ '10.81.198.43', 9880, 0, 5, 0, 5, 0, 0, 0, 0, 4, -102, 1, 0, 0, 'b'], 
+ [128, 1491498813, '00:0b:xx:xx:59:c0','20:68:xx:xx:d4:74', '10.81.198.43', 
+ '72.21.91.29', 9814768, 0, 873, 59, 0, 0, 0, 0, 814, 872, -36, 55, 0, 0, 'n']]
 
  DNS answer dictionary
  {'172.217.5.78':'www.youtube.com', '35.166.101.77': 'aus5.mozilla.org',
@@ -45,17 +43,32 @@ Output: This parser has 2 intended outputs
 
 from glob import glob
 import pyshark
-#import psycopg2
-#import configparser
+#import DatabaseConnect as dc
 import time
 
 ##################################################################
 
-# Take a look at keeping the program running (maybe a command prompt script??),
-# and finalize list to add to the table.
-
-#########################################################
-def getDatabaseKey(v):
+# Take a look at keeping the program running (maybe a command prompt script??)
+# Get pkt variables and then do something like this:
+#    obj.mac_src = mac_src
+#    obj.ip_src = ip_src
+#    obj.ofdm = 1
+#    obj.cck = 1
+#    obj.bits = some int
+##################################################################
+#database = dc.DatabaseConnect()
+#database.connect()
+def getMACKey(v):
+    for k in v:
+        for j in v[k]:
+            for m in v[k][j]:
+                for n in v[k][j][m]:
+                    if k == "ff:ff:ff:ff:ff:ff":
+                        v[k][j][m][n][1] = '0'
+                    if j == "ff:ff:ff:ff:ff:ff":
+                        v[k][j][m][n][2] = '0'
+    return v
+def getIPKey(v):
     pass
     
 #This function checks specific channel flags of a packet
@@ -90,13 +103,14 @@ def check_flags(pkt, cflags):
         return cflags
     except:
         pass
-v = 0
+
+serverKey = 0 #database.getNextDataKey()
 start_time = time.time()
 #Looks for any pcap files in working directory
 for file_name in sorted(glob("*.pcap")):
     #If there are any, it will open them as pcap_data
     with open(file_name, "rb") as pcap_data:
-        getDatabaseKey(v)
+        
         #Loads .pcap data into variable "pktdata"
         pktdata = pyshark.FileCapture(pcap_data, keep_packets = False)
         #Empty list of Unique MAC addresses
@@ -109,7 +123,9 @@ for file_name in sorted(glob("*.pcap")):
         dns_list = []
         #Gets dns answers (if any) and puts in a dictionary.
         # It has this format: {ip_addr : website that it belongs to}
-        dns_addr = {}                             
+        dns_addr = {}
+        #Dns answers from mobile devices
+        mdns_addr = {}                          
         #Dictionary that reads on organizes statistics from packets
         statDict = {}  
         #Cumulitive channel flag counter
@@ -127,7 +143,8 @@ for file_name in sorted(glob("*.pcap")):
                 pktfirst = pkt
             n += 1
             #Packet number
-            print "Packet: " + str(n)
+            if n % 1000 == 0:
+                print "Packet: " + str(n)
 
             #Timestamp in UTC/Epoch time
             ##print pkt.sniff_timestamp
@@ -185,31 +202,32 @@ for file_name in sorted(glob("*.pcap")):
                    pass
                 try:
                     #Now we try DNS response packets for phones
-                    dns_addr[pkt.mdns.dns_a] = fqdn
-                    dns_addr[pkt.mdns.dns_a_0] = fqdn
-                    dns_addr[pkt.mdns.dns_a_1] = fqdn
-                    dns_addr[pkt.mdns.dns_a_2] = fqdn
-                    dns_addr[pkt.mdns.dns_a_3] = fqdn
-                    dns_addr[pkt.mdns.dns_a_4] = fqdn
-                    dns_addr[pkt.mdns.dns_a_5] = fqdn
-                    dns_addr[pkt.mdns.dns_a_6] = fqdn
-                    dns_addr[pkt.mdns.dns_a_7] = fqdn
-                    dns_addr[pkt.mdns.dns_a_8] = fqdn
+                    mdns_addr[pkt.mdns.dns_a] = fqdn
+                    mdns_addr[pkt.mdns.dns_a_0] = fqdn
+                    mdns_addr[pkt.mdns.dns_a_1] = fqdn
+                    mdns_addr[pkt.mdns.dns_a_2] = fqdn
+                    mdns_addr[pkt.mdns.dns_a_3] = fqdn
+                    mdns_addr[pkt.mdns.dns_a_4] = fqdn
+                    mdns_addr[pkt.mdns.dns_a_5] = fqdn
+                    mdns_addr[pkt.mdns.dns_a_6] = fqdn
+                    mdns_addr[pkt.mdns.dns_a_7] = fqdn
+                    mdns_addr[pkt.mdns.dns_a_8] = fqdn
                 except:
                    pass
                 
             except:
-                ip_src = "None"
-                ip_dst = "None"
-             
+                #ip_src = "None"
+                #ip_dst = "None"
+                pass
+                
             #Computing statistics from user A to user B
             try:         
                 #Source MAC address
-                mac_src = pkt.wlan.sa
+                mac_src = str(pkt.wlan.sa)
                 #Destination MAC address
-                mac_dst = pkt.wlan.da
+                mac_dst = str(pkt.wlan.da)
                 #Integer version of time stamp
-                ts = int(float(pktfirst.sniff_timestamp))
+                ts = int(float(pkt.sniff_timestamp))
                 
                 #Dictionary that takes and updates statistics sent between two 
                 # users. This is the Format: 
@@ -219,25 +237,26 @@ for file_name in sorted(glob("*.pcap")):
                 # cumulitive signal strength, cumulitive data rate,
                 # duration (us), preamble duration (us),  physical type b,
                 # physical type g, physical type n, channel]}
+                
                 if mac_src not in statDict:
                     statDict[mac_src] = {mac_dst : {ip_src : {ip_dst : [ts,\
                     mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0, 0, 0,\
-                    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, '0']}}} 
+                    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]}}} 
                 #For multiple sources that have different destinations
                 elif mac_dst not in statDict[mac_src]: 
                     statDict[mac_src].update({mac_dst : {ip_src : {ip_dst :\
                     [ts, mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0,\
-                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, '0']}}})
+                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]}}})
                 #If the source IP changes we want to record the conversation
                 elif ip_src not in statDict[mac_src][mac_dst]:
                     statDict[mac_src][mac_dst].update({ip_src : {ip_dst :\
                     [ts, mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0,\
-                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, '0']}})
+                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]}})
                 #If the desination IP changes we also want to record the convo
                 elif ip_dst not in statDict[mac_src][mac_dst][ip_src]:
                     statDict[mac_src][mac_dst][ip_src].update({ip_dst :\
                     [ts, mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0,\
-                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, '0']})
+                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]})
                 #Updates already existing converations in dictionary
                 else:
                     #Bits between user A and user B
@@ -245,11 +264,15 @@ for file_name in sorted(glob("*.pcap")):
                     #Number of packets between user A and user B
                     statDict[mac_src][mac_dst][ip_src][ip_dst][14] += 1
                     
+#                getMACKey(statDict)
+#                getIPKey(statDict)
+                
+                
                 #Function calls for checking/updating channel flags   
                 check_flags(pkt.radiotap,cflags)
                 check_flags(pkt.radiotap,cflags_c)
                 
-                #This block updates channel flags betweens users in ethDict
+                #This block updates channel flags betweens users in statDict
                 iterator = 6
                 for f in cflags:
                     if iterator < 14:
@@ -347,11 +370,15 @@ for file_name in sorted(glob("*.pcap")):
             try:
                 for k in statDict:
                     for j in statDict[k]:
-                        #Number of packets in converation/total signal strength
-                        statDict[k][j][15] = statDict[k][j][15]/statDict[k][j][14]
-                        #Number of packets in converation/total data rate
-                        statDict[k][j][16] = statDict[k][j][16]/statDict[k][j][14]
-            except:
+                        for m in statDict[k][j]:
+                            for n in statDict[k][j][m]:
+                                #Number of packets in converation/total signal strength
+                                statDict[k][j][m][n][15] = \
+                                statDict[k][j][m][n][15]/statDict[k][j][m][n][14]
+                                #Number of packets in converation/total data rate
+                                statDict[k][j][m][n][16] = \
+                                statDict[k][j][m][n][16]/statDict[k][j][m][n][14]
+            except:                
                 pass
             
             #Puts statDict into a more readable list, ready to push to a database 
@@ -368,10 +395,9 @@ for file_name in sorted(glob("*.pcap")):
                         for n in statDict[k][j][m]:
                             #The key is made by concatenating the timestamp with
                             # source and destination MAC addresses
-                            l = str(int(float(pktfirst.sniff_timestamp)))\
-                            + str(k) + str(j)
-                            listFinal.append(statDict[k][j][m][n])#[l] + #
-                            v += 1
+                            l = serverKey
+                            listFinal.append([l] + statDict[k][j][m][n])
+                            serverKey += 1
                             
             #Finally, we print everything
             if numOfUsers > 0: 
@@ -379,11 +405,21 @@ for file_name in sorted(glob("*.pcap")):
 #                print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
                 
                 #The two intended outputs
+#                database.writeData(listFinal)
+#                database.disconnect()
+                for k in listFinal:
+                    for d in dns_addr:
+                        if k[4] == d:
+                            k[4] = dns_addr[d]
+                        if k[5] == d:
+                            k[5] = dns_addr[d]
                 for h in listFinal:
                     print h
-                print"\n"
-                for h in dns_addr:
-                    print h + " " + dns_addr[h]
+#                print"\n"
+#                for h in dns_addr:
+#                    print h + " " + dns_addr[h]
+#                for h in mdns_addr:
+#                    print h + "_" + mdns_addr[h]
                 print("--- %s seconds ---" % (time.time() - start_time))
             else:
                 print "There are no users/data for this pcap file: " + str(file_name)
