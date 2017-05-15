@@ -1,4 +1,10 @@
-#include <tins/tins.h>
+/*
+ * Authors: Francisco Viramontes, Seth Decker
+ * 
+ * 
+*/
+
+#include <tins/tins.h> //Header for pcap parser
 #include <iostream>
 #include <bitset>
 #include <stddef.h>

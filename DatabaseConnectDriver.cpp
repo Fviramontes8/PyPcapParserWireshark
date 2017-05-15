@@ -10,13 +10,13 @@ int main() {
 	std::string username = "postgres";
 	std::string password = "postgresUNM";
 
-	std::cout << hostname << std::endl;
+	//std::cout << hostname << std::endl;
 	DatabaseConnect db(dbname, hostname, username, password);
 	//DatabaseConnect db();
-	
+	std::cout << "hello\n";
 	db.connect();
+	std::cout << "hello2\n";
+	//db.writeData();
 	
-	db.writeData();
-	
-	db.disconnect();
+	//db.disconnect();
 }

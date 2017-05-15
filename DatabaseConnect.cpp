@@ -15,9 +15,10 @@ DatabaseConnect::DatabaseConnect(std::string _databasename, std::string _host, s
 
 int DatabaseConnect::connect()
 {
-	std::string conninfo =  "dbname=" + username + " " + " host=" + host + " " + " user=" + username + " " + " password=" + password;
-	std::cout << conninfo << std::endl;
+	std::string conninfo =  "dbname=" + databasename + " " + " host=" + host + " " + " user=" + username + " " + " password=" + password;
+	//std::cout << conninfo << std::endl;
 	conn = PQconnectdb(conninfo.c_str());
+	std::cout << "banana\n";
 	    /* Check to see that the backend connection was successfully made */
     if (PQstatus(conn) != CONNECTION_OK)
     {
