@@ -1,3 +1,9 @@
+/*
+ * Author: Seth Decker
+ * 
+ * Description: 
+ * 
+ */
 #include <iostream>
 #include <string>
 #include "DatabaseConnect.hpp"
@@ -15,7 +21,6 @@ int main() {
 	//DatabaseConnect db();
 	std::cout << "hello\n";
 	db.connect();
-	std::cout << "hello2\n";
 	//db.writeData();
 	
 	//db.disconnect();
