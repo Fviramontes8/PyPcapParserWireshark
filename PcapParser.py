@@ -49,12 +49,7 @@ import time
 ##################################################################
 
 # Take a look at keeping the program running (maybe a command prompt script??)
-# Get pkt variables and then do something like this:
-#    obj.mac_src = mac_src
-#    obj.ip_src = ip_src
-#    obj.ofdm = 1
-#    obj.cck = 1
-#    obj.bits = some int
+
 ##################################################################
 #database = dc.DatabaseConnect()
 #database.connect()
