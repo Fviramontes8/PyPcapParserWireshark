@@ -17,16 +17,11 @@ bool count_packets(const PDU &pdu)
 	if ((radiotap.present() & RadioTap::CHANNEL) != 0)
 	{
 		std::cout << "frequency: " << (int)radiotap.channel_freq() << std::endl;
-		std::cout << "type: " << std::bitset<32>(radiotap.channel_type()) << std::endl;
+		std::cout << "type: " << std::bitset<12>(radiotap.channel_type()) << std::endl;
 	}
 	if ((radiotap.present() & RadioTap::RATE) != 0)
 	{
 		std::cout << "rate: " << (int)radiotap.rate()/2 << std::endl;
-	}
-
-	if ((radiotap.present() & RadioTap::FLAGS) != 0)
-	{
-		std::cout << "flags: " << std::bitset<32>(radiotap.flags()) << std::endl;
 	}
 	
 	if ((radiotap.present() & RadioTap::DBM_SIGNAL) != 0)
@@ -39,9 +34,7 @@ bool count_packets(const PDU &pdu)
 	}
 	
 	const IP &ip = pdu.rfind_pdu<IP>(); // Find the IP layer
-    const TCP &tcp = pdu.rfind_pdu<TCP>(); // Find the TCP layer
-    std::cout << ip.src_addr() << ':' << tcp.sport() << " -> " 
-              << ip.dst_addr() << ':' << tcp.dport() << std::endl;
+    std::cout << ip.src_addr() << ip.dst_addr() << std::endl;
 	
 	return true;
 }
