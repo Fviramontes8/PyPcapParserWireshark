@@ -43,7 +43,7 @@ Output: This parser has 2 intended outputs
 
 from glob import glob
 import pyshark
-#import DatabaseConnect as dc
+import DatabaseConnect as dc
 import time
 
 ##################################################################
@@ -51,8 +51,9 @@ import time
 # Take a look at keeping the program running (maybe a command prompt script??)
 
 ##################################################################
-#database = dc.DatabaseConnect()
-#database.connect()
+database = dc.DatabaseConnect()
+database.connect()
+'''
 def getMACKey(v):
     for k in v:
         for j in v[k]:
@@ -65,6 +66,7 @@ def getMACKey(v):
     return v
 def getIPKey(v):
     pass
+'''
     
 #This function checks specific channel flags of a packet
 # also updates statDict
@@ -400,8 +402,8 @@ for file_name in sorted(glob("*.pcap")):
 #                print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
                 
                 #The two intended outputs
-#                database.writeData(listFinal)
-#                database.disconnect()
+                database.writeData(listFinal)
+                database.disconnect()
                 for k in listFinal:
                     for d in dns_addr:
                         if k[4] == d:
