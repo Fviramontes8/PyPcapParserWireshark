@@ -53,7 +53,8 @@ int DatabaseConnect::writeData(/*list here*/)
 	 * # of 802.11g pkts(int)
 	 * # of 802.11n pkts(int)
 	 ******************************************************************/
-	PQexec(conn, "INSERT INTO cplusplustest VALUES('burp2', 100000, 100000)");
+	PQexec(conn, "CREATE TABLE cpp_yo(user_id serial PRIMARY KEY, num int, data varchar(20));");
+	//PQexec(conn, "INSERT INTO cp_yo VALUES('burp2', 100000, 100000)");
 	printf("%s\n", PQerrorMessage(conn));
 	return 0;
 }

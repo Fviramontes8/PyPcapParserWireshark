@@ -23,5 +23,5 @@ int main() {
 
 	//db.writeData();
 	
-	//db.disconnect();
+	db.disconnect();
 }
