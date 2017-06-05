@@ -43,7 +43,8 @@ Output: This parser has 2 intended outputs
 
 from glob import glob
 import pyshark
-import DatabaseConnect as dc
+#import DatabaseConnect as dc
+import psycopg2
 import time
 
 ##################################################################
@@ -51,8 +52,8 @@ import time
 # Take a look at keeping the program running (maybe a command prompt script??)
 
 ##################################################################
-database = dc.DatabaseConnect()
-database.connect()
+#database = dc.DatabaseConnect()
+#database.connect()
 '''
 def getMACKey(v):
     for k in v:
@@ -402,8 +403,22 @@ for file_name in sorted(glob("*.pcap")):
 #                print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
                 
                 #The two intended outputs
-                database.writeData(listFinal)
-                database.disconnect()
+                #database.writeData(listFinal)
+                #database.disconnect()
+                try:
+                    conn = psycopg2.connect("dbname = 'postgres' user = 'postgres'\
+                                            host = '129.24.26.137' password = 'Cerculsihr4T'")
+                    print "Connected to database!"
+                except:
+                    print "Could not connect to database"
+                if conn:
+                    cur = conn.cursor()
+                try:
+                    cur.execute("create table Pcap(Key INT PRIMARY KEY, ts VARCHAR, M_src VARCHAR, M_dst VARCHAR, IP_src VARCHAR, IP_dst VARCHAR, bits int, passive int, twoGHz int, ofdm int, cck int, gfsk int, fiveGHz int, gsm int, cck_ofdm int, pkt_num int, sigS int, dR int, dur int, pre_dur int, phyb int, phyg int, phyn int)")
+                    print "Created table"
+                except:
+                    print "Could not create table"
+
                 for k in listFinal:
                     for d in dns_addr:
                         if k[4] == d:
@@ -411,7 +426,20 @@ for file_name in sorted(glob("*.pcap")):
                         if k[5] == d:
                             k[5] = dns_addr[d]
                 for h in listFinal:
-                    print h
+                    print h[0], h[1], h[2], h[3]
+                    try:
+                        cur.execute("INSERT INTO Pcap(Id, ts, M_src, M_dst, IP_src, IP_dst, bits, passive, twoGHz, ofdm, cck, gfsk, fiveGHz, gsm, cck_ofdm, pkt_num, sigS, dR, dur, pre_dur, phyb, phyg, phyn) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], h[8], h[9], h[10], h[11], h[12], h[13], h[14], h[15], h[16], h[17], h[18], h[19], h[20], h[21], h[22],))
+                        print "Inserted into table"
+                    except:
+                        print "Could not insert into table"
+                try:
+                    conn.commit()
+                    print "Saved table data on database"
+                    cur.close()
+                    conn.close()
+                    print "Disconnected!"
+                except:
+                    print "Could not close connection"
 #                print"\n"
 #                for h in dns_addr:
 #                    print h + " " + dns_addr[h]
