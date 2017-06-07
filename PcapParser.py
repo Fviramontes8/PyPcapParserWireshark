@@ -43,8 +43,8 @@ Output: This parser has 2 intended outputs
 
 from glob import glob
 import pyshark
-#import DatabaseConnect as dc
-import psycopg2
+import DatabaseConnect as dc
+#import psycopg2
 import time
 
 ##################################################################
@@ -52,8 +52,8 @@ import time
 # Take a look at keeping the program running (maybe a command prompt script??)
 
 ##################################################################
-#database = dc.DatabaseConnect()
-#database.connect()
+db = dc.DatabaseConnect()
+db.connect()
 '''
 def getMACKey(v):
     for k in v:
@@ -102,7 +102,7 @@ def check_flags(pkt, cflags):
     except:
         pass
 
-serverKey = 0 #database.getNextDataKey()
+serverKey = 0 #db.getNextDataKey()
 start_time = time.time()
 #Looks for any pcap files in working directory
 for file_name in sorted(glob("*.pcap")):
@@ -166,9 +166,9 @@ for file_name in sorted(glob("*.pcap")):
             #Taking a look at IPv4 information
             try:
                 #Source IP address of the packet
-                ip_src = pkt.ip.src
+                ip_src = str(pkt.ip.src)
                 #Destination IP address of the packet
-                ip_dst = pkt.ip.dst
+                ip_dst = str(pkt.ip.dst)
                 
                 #If we encounter DNS packets we want to see which domains a user
                 # is looking for so we can see what services they may use.               
@@ -214,9 +214,8 @@ for file_name in sorted(glob("*.pcap")):
                    pass
                 
             except:
-                #ip_src = "None"
-                #ip_dst = "None"
-                pass
+                ip_src = "None"
+                ip_dst = "None"
                 
             #Computing statistics from user A to user B
             try:         
@@ -239,22 +238,22 @@ for file_name in sorted(glob("*.pcap")):
                 if mac_src not in statDict:
                     statDict[mac_src] = {mac_dst : {ip_src : {ip_dst : [ts,\
                     mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0, 0, 0,\
-                    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]}}} 
+                    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]}}} 
                 #For multiple sources that have different destinations
                 elif mac_dst not in statDict[mac_src]: 
                     statDict[mac_src].update({mac_dst : {ip_src : {ip_dst :\
                     [ts, mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0,\
-                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]}}})
+                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]}}})
                 #If the source IP changes we want to record the conversation
                 elif ip_src not in statDict[mac_src][mac_dst]:
                     statDict[mac_src][mac_dst].update({ip_src : {ip_dst :\
                     [ts, mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0,\
-                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]}})
+                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]}})
                 #If the desination IP changes we also want to record the convo
                 elif ip_dst not in statDict[mac_src][mac_dst][ip_src]:
                     statDict[mac_src][mac_dst][ip_src].update({ip_dst :\
                     [ts, mac_src, mac_dst, ip_src, ip_dst, pktBits, 0, 0,\
-                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]})
+                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]})
                 #Updates already existing converations in dictionary
                 else:
                     #Bits between user A and user B
@@ -324,11 +323,13 @@ for file_name in sorted(glob("*.pcap")):
 
                     #Gives what channel is being used
                     channel = int(pkt.wlan_radio.channel)
+                    '''
                     try:
                         #Updates the channel type (1-11)
                         statDict[mac_src][mac_dst][ip_src][ip_dst][22]=channel
                     except:
                         pass
+                        '''
 
                     #Duration in microseconds
                     dur = int(pkt.wlan_radio.duration)
@@ -386,7 +387,7 @@ for file_name in sorted(glob("*.pcap")):
             # 5GHz, gsm, cck_ofdm, # of pkt in convo, 
             # avg signal strength, avg data rate, cumulitive duration(us),
             # cumulitive preamble duration(us), physical type b,
-            # physical type g, physical type n, channel]
+            # physical type g, physical type n]
             for k in statDict: 
                 for j in statDict[k]:
                     for m in statDict[k][j]:
@@ -399,48 +400,22 @@ for file_name in sorted(glob("*.pcap")):
                             
             #Finally, we print everything
             if numOfUsers > 0: 
-#                print "Number of packets for this file: " + str(len(pktdata))
-#                print "Bandwidth is "+str(int(cumulBits/total_duration))+" bits/s\n"
-                
                 #The two intended outputs
-                #database.writeData(listFinal)
-                #database.disconnect()
-                try:
-                    conn = psycopg2.connect("dbname = 'postgres' user = 'postgres'\
-                                            host = '129.24.26.137' password = 'Cerculsihr4T'")
-                    print "Connected to database!"
-                except:
-                    print "Could not connect to database"
-                if conn:
-                    cur = conn.cursor()
-                try:
-                    cur.execute("create table Pcap(Key INT PRIMARY KEY, ts VARCHAR, M_src VARCHAR, M_dst VARCHAR, IP_src VARCHAR, IP_dst VARCHAR, bits int, passive int, twoGHz int, ofdm int, cck int, gfsk int, fiveGHz int, gsm int, cck_ofdm int, pkt_num int, sigS int, dR int, dur int, pre_dur int, phyb int, phyg int, phyn int)")
-                    print "Created table"
-                except:
-                    print "Could not create table"
-
+                
+                tableName = "Ze Table 3"
+                db.writeDataTable(tableName)
+                db.writeData(tableName, listFinal)
+                #print db.readDataTable("cpp_yo")
+                #print db.getTableNames()
+                db.disconnect()
+                
                 for k in listFinal:
                     for d in dns_addr:
                         if k[4] == d:
                             k[4] = dns_addr[d]
                         if k[5] == d:
                             k[5] = dns_addr[d]
-                for h in listFinal:
-                    print h[0], h[1], h[2], h[3]
-                    try:
-                        cur.execute("INSERT INTO Pcap(Id, ts, M_src, M_dst, IP_src, IP_dst, bits, passive, twoGHz, ofdm, cck, gfsk, fiveGHz, gsm, cck_ofdm, pkt_num, sigS, dR, dur, pre_dur, phyb, phyg, phyn) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], h[8], h[9], h[10], h[11], h[12], h[13], h[14], h[15], h[16], h[17], h[18], h[19], h[20], h[21], h[22],))
-                        print "Inserted into table"
-                    except:
-                        print "Could not insert into table"
-                try:
-                    conn.commit()
-                    print "Saved table data on database"
-                    cur.close()
-                    conn.close()
-                    print "Disconnected!"
-                except:
-                    print "Could not close connection"
-#                print"\n"
+                print"\n"
 #                for h in dns_addr:
 #                    print h + " " + dns_addr[h]
 #                for h in mdns_addr:

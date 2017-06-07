@@ -37,7 +37,7 @@ from configparser import ConfigParser
 import os
 import psycopg2
 from psycopg2 import sql
-import pandas as pd
+#import pandas as pd
 
 class DatabaseConnect(object):
     
@@ -48,7 +48,7 @@ class DatabaseConnect(object):
         self.ip_address_table_name = "IPAddressTable"
         self.data_table_name = "raw_data_table"
         
-        self.data_table_query = "(Key, Timestamp, SourceMACKey, DestinationMACKey, SourceIPKey, DestinationIPKey, TotalBits, FlagPassive, Flag2GHz, FlagOFDM, FlagCCK, FlagGFSK, Flag5GHz, FlagGSM, FlagCCKOFDM, NumPackets, SignalStrength, DataRate, Duration, DurationPreamble, CounterB, CounterG, CounterN, Channel) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)" 
+        self.data_table_query = "(Key, Timestamp, SourceMACKey, DestinationMACKey, SourceIPKey, DestinationIPKey, TotalBits, FlagPassive, Flag2GHz, FlagOFDM, FlagCCK, FlagGFSK, Flag5GHz, FlagGSM, FlagCCKOFDM, NumPackets, SignalStrength, DataRate, Duration, DurationPreamble, CounterB, CounterG, CounterN) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)" 
         self.mac_table_query = "(Key , MACAddress) VALUES (%s, %s)"
         self.ip_table_query = "(Key , IPAddress) VALUES (%s, %s)"
         
@@ -164,26 +164,31 @@ class DatabaseConnect(object):
     def getNextIPKey(self):
         a = self.getNextKey(self.ip_address_table_name)
         return a + 1 
-        
+###############################################################################
+#THIS NEEDS ATTENTION IN THE FUTURE        
     def getNextDataKey(self):
         a = self.getNextKey(self.data_table_name)
         return a + 1
-        
+###############################################################################        
     def readTable(self, table_name):
         if self._checkConnection():
             cur = self.conn.cursor()
             query = sql.SQL("select * from {} as a").format(sql.Identifier(table_name))
             cur.execute(query)
-            print("Data retrieved")
+            print("Data retrieved from table: " + table_name)
         
             output = cur.fetchall()
         
             return output
         return
-        
-    def readDataTable(self):
-        return self.readTable(self.data_table_name)
-         
+###############################################################################
+#How are we going to name the tables?
+    def readDataTable(self, table_name):
+        return self.readTable(table_name)
+    #Default function
+    #def readDataTable(self):
+        #return self.readTable(self.data_table_name)
+###############################################################################         
     def readIPTable(self):
         return self.readTable(self.ip_address_table_name)
     
@@ -191,22 +196,22 @@ class DatabaseConnect(object):
         return self.readTable(self.mac_address_table_name)
     
     def _writeData(self, table_name, query, new_data):
-        print(query)
+        #print(query)
         print(table_name)
-        print(new_data)
+        #print(new_data)
         
         if self._checkConnection():
             cur = self.conn.cursor()
             
-            query = sql.SQL("INSERT INTO {} " + query).format(sql.Identifier(table_name))   
-            
+            query = sql.SQL("INSERT INTO {} " + query).format(sql.Identifier(table_name))
+                
             # need to discriminate single and multiple data
             cur.executemany(query, new_data)
         
             self.conn.commit()
     
-    def writeData(self, new_table_data):
-        self._writeData(self.data_table_name, self.data_table_query, new_table_data)
+    def writeData(self, table_name, new_table_data):
+        self._writeData(table_name, self.data_table_query, new_table_data)
             
     def writeIPData(self, new_ip_data):
         self._writeData(self.ip_address_table_name, self.ip_table_query, new_ip_data)
@@ -244,24 +249,25 @@ class DatabaseConnect(object):
             print("Unable to connect to the database!")
 
     def disconnect(self):
-        print("disconnecting.")
         if self.conn is not None:
             self.conn.close()
+        print("Disconnected.")
     
 
-    def writeDataTable(self):
+    def writeDataTable(self, table_name):
         if self._checkConnection():
             #moving key->value to post processing
-            args = "(Key INT PRIMARY KEY, Timestamp INT, SourceMACKey VARCHAR(20), DestinationMACKey VARCHAR(20), SourceIPKey VARCHAR(20), DestinationIPKey VARCHAR(20), TotalBits INT, FlagPassive INT, Flag2GHz INT, FlagOFDM INT, FlagCCK INT, FlagGFSK INT, Flag5GHz INT, FlagGSM INT, FlagCCKOFDM INT, NumPackets INT, SignalStrength INT, DataRate INT, Duration INT, DurationPreamble INT, CounterB INT, CounterG INT, CounterN INT, Channel INT)"
-            #args = "(Key INT PRIMARY KEY, Timestamp INT, SourceMACKey INT, DestinationMACKey INT, SourceIPKey INT, DestinationIPKey INT, TotalBits INT, FlagPassive INT, Flag2GHz INT, FlagOFDM INT, FlagCCK INT, FlagGFSK INT, Flag5GHz INT, FlagGSM INT, FlagCCKOFDM INT, NumPackets INT, SignalStrength INT, DataRate INT, Duration INT, DurationPreamble INT, CounterB INT, CounterG INT, CounterN INT, Channel INT)"
+            args = "(Key INT PRIMARY KEY, Timestamp INT, SourceMACKey VARCHAR(20), DestinationMACKey VARCHAR(20), SourceIPKey VARCHAR(20), DestinationIPKey VARCHAR(20), TotalBits INT, FlagPassive INT, Flag2GHz INT, FlagOFDM INT, FlagCCK INT, FlagGFSK INT, Flag5GHz INT, FlagGSM INT, FlagCCKOFDM INT, NumPackets INT, SignalStrength INT, DataRate INT, Duration INT, DurationPreamble INT, CounterB INT, CounterG INT, CounterN INT)"
             
-            query = sql.SQL("CREATE TABLE {} " + args).format(sql.Identifier(self.data_table_name))
+            query = sql.SQL("CREATE TABLE {} " + args).format(sql.Identifier(table_name))
             
             self.conn.cursor().execute(query)
 
             self.conn.commit()
 
     def getTableNames(self):
+        #In order to see tables names the user should print it
+        # print DatabaseConnect.getTableNames()
         if self._checkConnection():
             cur = self.conn.cursor()
     
