@@ -178,7 +178,7 @@ class DatabaseConnect(object):
             print("Data retrieved from table: " + table_name)
         
             output = cur.fetchall()
-        
+            
             return output
         return
 ###############################################################################
@@ -257,7 +257,7 @@ class DatabaseConnect(object):
     def writeDataTable(self, table_name):
         if self._checkConnection():
             #moving key->value to post processing
-            args = "(Key INT PRIMARY KEY, Timestamp INT, SourceMACKey VARCHAR(20), DestinationMACKey VARCHAR(20), SourceIPKey VARCHAR(20), DestinationIPKey VARCHAR(20), TotalBits INT, FlagPassive INT, Flag2GHz INT, FlagOFDM INT, FlagCCK INT, FlagGFSK INT, Flag5GHz INT, FlagGSM INT, FlagCCKOFDM INT, NumPackets INT, SignalStrength INT, DataRate INT, Duration INT, DurationPreamble INT, CounterB INT, CounterG INT, CounterN INT)"
+            args = "(Key INT PRIMARY KEY, ts INT, nou INT, bits INT, pkt_num INT, sigS INT, dr INT, phyb INT, phyg INT, phyn INT)"
             
             query = sql.SQL("CREATE TABLE {} " + args).format(sql.Identifier(table_name))
             
