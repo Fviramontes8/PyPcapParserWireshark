@@ -52,6 +52,7 @@
 #include <boost/variant.hpp>//For use of having a map that contain strings and ints
 #include <vector> //For the use of vectors
 #include <boost/filesystem.hpp> //To get multiple pcap files in a folder
+#include "DatabaseConnect.hpp"
 
 using namespace Tins;
 typedef boost::variant<int, std::string> IntOrString;
@@ -66,7 +67,7 @@ int main(int argc, char* argv[]) {
 	timeval tm1, tm2;
 	gettimeofday(&tm1,NULL);
 	//The path given is to open the pcap files in the directory of chosing
-	const std::string path("/root/PyPcapParserWireshark/multi_pcap");
+	const std::string path("/root/PyPcapParserWireshark/");
 	
 	//Time to iterate through the directory of chosing to parse the pcap files
 	boost::filesystem::directory_iterator end_itr;
@@ -193,6 +194,18 @@ int main(int argc, char* argv[]) {
 							}
 						}
 					}
+					//To check the IP address if it is part of the dns response
+					/*
+					if(!dnsMap.empty()) {
+						for(auto& d : dnsMap){
+							if(d.first == IP_src) {
+								IP_src = d.second;
+							}
+							if(d.first == IP_dst) {
+								IP_dst == d.second;
+							}
+						}
+					}*/
 				}
 				
 				//Size of the packet in bytes
@@ -435,6 +448,7 @@ int main(int argc, char* argv[]) {
 		std::cout << std::endl;
 		
 		//Printing DNS Map
+		/*
 		for(int g = 1; g < dnsMap.size() + 1; g++) {
 			for(int h = 0; h < 2; h++) {
 				if(h == 1) {
@@ -445,6 +459,7 @@ int main(int argc, char* argv[]) {
 				}
 			}
 		}
+		*/
 		std::cout << std::endl;
 	}
 	//int someint = std::stoi(somestring);

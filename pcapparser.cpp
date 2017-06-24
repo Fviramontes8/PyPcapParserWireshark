@@ -37,10 +37,6 @@
  *  Firstly, a matrix that contains a sequence of integers 
  *  and strings as given above (Key, Timestamp, MAC source, etc.
  *  
- * 
- ***********************************************************************
- * GOT TO UPDATE THIS
- ***********************************************************************
  *  Secondly, a map that contains IP addresses as a key (as a string) 
  *  and values (also as a string) that match the IP address to a website
  *  (like 208.77.78.215 to youtube-ui.l.google.com)
@@ -56,21 +52,20 @@
 #include <boost/variant.hpp>//For use of having a map that contain strings and ints
 #include <vector> //For the use of vectors
 #include <boost/filesystem.hpp> //To get multiple pcap files in a folder
+#include "DatabaseConnect.hpp"
 
 using namespace Tins;
 typedef boost::variant<int, std::string> IntOrString;
-
-/*int getDKey(int x) {
-	//Add fn to get key from data base
-	return x;
-}*/
 
 int main(int argc, char* argv[]) {
 	//Variables to keep track on how long the program is running
 	timeval tm1, tm2;
 	gettimeofday(&tm1,NULL);
+	
 	//The path given is to open the pcap files in the directory of chosing
-	const std::string path("/root/PyPcapParserWireshark/multi_pcap");
+/**********************************************************************/
+	const std::string path("/root/PyPcapParserWireshark/");
+/**********************************************************************/
 	
 	//Time to iterate through the directory of chosing to parse the pcap files
 	boost::filesystem::directory_iterator end_itr;
@@ -197,6 +192,18 @@ int main(int argc, char* argv[]) {
 							}
 						}
 					}
+					
+					//To check the IP address if it is part of the dns response
+					if(!dnsMap.empty()) {
+						for(auto& d : dnsMap){
+							if(d.first == IP_src) {
+								IP_src = d.second;
+							}
+							if(d.first == IP_dst) {
+								IP_dst == d.second;
+							}
+						}
+					}
 				}
 				
 				//Size of the packet in bytes
@@ -226,6 +233,9 @@ int main(int argc, char* argv[]) {
 						sigS = radiotap.dbm_signal();
 					}
 				}
+/***********************************************************************
+ * Add MAC filter here
+ **********************************************************************/
 				
 				//A totally new conversation!
 				if (statMap.count(M_src) == 0) {
@@ -415,15 +425,6 @@ int main(int argc, char* argv[]) {
 			}
 		}
 		
-		//Putting all the dns values into a matrix
-		u = dnsMap.size();
-		std::vector<std::vector<std::string>> dnsFinal(u + 1, std::vector<std::string>(2));
-		for(auto& iter : dnsMap){
-			dnsFinal[u][0] = iter.first;
-			dnsFinal[u][1] = iter.second;
-			u--;
-		}
-		
 		//Printing the vector of strings
 		for(int p = 0; p < nPkt; p++){
 			std::cout << "[";
@@ -436,21 +437,14 @@ int main(int argc, char* argv[]) {
 				}
 			}
 		}
-		std::cout << std::endl;
-		
-		//Printing DNS Map
-		for(int g = 1; g < dnsMap.size() + 1; g++) {
-			for(int h = 0; h < 2; h++) {
-				if(h == 1) {
-					std::cout << dnsFinal[g][h]<< std::endl;
-				}
-				else {
-					std::cout << dnsFinal[g][h] << ": ";
-				}
-			}
-		}
-		std::cout << std::endl;
 	}
+	// TO CONNECT TO DATABASE
+	DatabaseConnect db("postgres", "129.24.26.137", "postgres", "Cerculsihr4T");
+	db.connect();
+	
+	db.writeData();
+	db.disconnect();
+	
 	//int someint = std::stoi(somestring);
 	gettimeofday(&tm2,NULL);
 	
