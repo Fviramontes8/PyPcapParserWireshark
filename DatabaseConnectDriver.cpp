@@ -21,7 +21,7 @@ int main() {
 	//DatabaseConnect db(); <- is the general function
 	db.connect();
 
-	//db.writeData();
+	db.writeData();
 	
 	db.disconnect();
 }
