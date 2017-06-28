@@ -56,6 +56,9 @@ def mean(values):
 def variance(values, mean):
     return sum([(x-mean)**2 for x in values])
 
+def sample_var(values, mean):
+    return sum([(x-mean)**2 for x in values])/len(values)
+
 def covariance(x, mean_x, y, mean_y):
     cov = 0.0
     for i in range(len(x)):
@@ -86,35 +89,57 @@ def datafy(data1, data2):
     return dataset
 
 timestamps = []
+ts_test = []
 nou = []
+nou_test = []
 bits = []
+bits_test = []
 pktNum = []
+pktNum_test = []
 sigS = []
+sigS_test = []
 dataRate = []
+dr_test = []
 phyB = []
+b_test = []
 phyG = []
+g_test = []
 phyN = []
+n_test = []
 
 db = dc.DatabaseConnect()
 db.connect()
 #Gotta read from pcap table bb
 
-yes = db.readTable("pcap_2h_second")
-#db.writeDataTable("pcap_2h_second")
+train = db.readTable("pcap_2.5h")
+test = db.readTable("pcap_6h")
+#db.writeDataTable("pcap_6h")
 
 db.disconnect()
 
-#Data from table (in form of tuple): pcap_data
-for k in sorted(yes, key=lambda hello: hello[0]):
-    timestamps.append(k[1])
-    nou.append(k[2])
-    bits.append(k[3])
-    pktNum.append(k[4])
-    sigS.append(k[5])
-    dataRate.append(k[6])
-    phyB.append(k[7])
-    phyG.append(k[8])
-    phyN.append(k[9])
+#Data from table (in form of tuple)
+for k in sorted(train, key=lambda hello: hello[0]):
+    timestamps.append(int(k[1]))
+    nou.append(int(k[2]))
+    bits.append(int(k[3]))
+    pktNum.append(int(k[4]))
+    sigS.append(int(k[5]))
+    dataRate.append(int(k[6]))
+    phyB.append(int(k[7]))
+    phyG.append(int(k[8]))
+    phyN.append(int(k[9]))
+    
+#Data from table (in form of tuple)
+for j in sorted(test, key=lambda hello: hello[0]):
+    ts_test.append(int(j[1]))
+    nou_test.append(int(j[2]))
+    bits_test.append(int(j[3]))
+    pktNum_test.append(int(j[4]))
+    sigS_test.append(int(j[5]))
+    dr_test.append(int(j[6]))
+    b_test.append(int(j[7]))
+    g_test.append(int(j[8]))
+    n_test.append(int(j[9]))
     
 #print db.readDataTable("cpp_yo")
 #print db.getTableNames()
@@ -139,78 +164,117 @@ plt.plot(timestamps, nou, "r-")
 plt.ylabel("Number of users")
 plt.xlabel("Timestamp")
 plt.show()
-'''
-dataset = datafy(timestamps, nou)
-split = 0.8
-newset = eval_algor(dataset, lin_regress, split)
+
+print "Average number of users: " + str(int(mean(nou)))
+print "Standard deviation: " + str(int(sqrt(sample_var(nou, mean(nou)))))
+
+plt.plot(ts_test, nou_test, "r-")
+plt.ylabel("Number of users")
+plt.xlabel("Timestamp")
+plt.show()
+
+print "Average number of users: " + str(int(mean(nou_test)))
+print "Standard deviation: " + str(int(sqrt(sample_var(nou_test, mean(nou_test)))))
+
+n_nou = datafy(timestamps, nou)
+n_nou_test = datafy(ts_test, nou_test)
+newset = lin_regress(n_nou, n_nou_test)
 plt.plot(newset)
 plt.show()
+print len(timestamps), len(ts_test)
 '''
 plt.plot(timestamps, bits, "r-")
 plt.ylabel("Bits")
 plt.xlabel("Timestamp")
 plt.show()
-'''
+
+print "Average bits: " + str(int(mean(bits)))
+print "Standard deviation: " + str(int(sqrt(sample_var(bits, mean(bits)))))
+
 dataset = datafy(timestamps, bits)
 newset = eval_algor(dataset, lin_regress, split)
 plt.plot(newset)
 plt.show()
-'''
+''
 plt.plot(timestamps, pktNum, "r-")
 plt.ylabel("Number of packets")
 plt.xlabel("Timestamp")
 plt.show()
-'''
+
+print "Average number of packets: " + str(int(mean(pktNum)))
+print "Standard deviation: " + str(int(sqrt(sample_var(pktNum, mean(pktNum)))))
+
+
 dataset = datafy(timestamps, pktNum)
 newset = eval_algor(dataset, lin_regress, split)
 plt.plot(newset)
 plt.show()
-'''
+''
 plt.plot(timestamps, sigS, "r-")
 plt.ylabel("Average signal strength")
 plt.xlabel("Timestamp")
 plt.show()
-'''
+
+print "Average signal strength: " + str(int(mean(sigS)))
+print "Standard deviation: " + str(int(sqrt(sample_var(sigS, mean(sigS)))))
+
+
 dataset = datafy(timestamps, sigS)
 newset = eval_algor(dataset, lin_regress, split)
 plt.plot(newset)
 plt.show()
-'''
+''
 plt.plot(timestamps, dataRate, "r-")
 plt.ylabel("Average data rate")
 plt.xlabel("Timestamp")
 plt.show()
-'''
+
+print "Average data rate: " + str(int(mean(dataRate)))
+print "Standard deviation: " + str(int(sqrt(sample_var(dataRate, mean(dataRate)))))
+
+''
 dataset = datafy(timestamps, dataRate)
 newset = eval_algor(dataset, lin_regress, split)
 plt.plot(newset)
 plt.show()
-'''
+''
 plt.plot(timestamps, phyB, "r-")
 plt.ylabel("Percentage of 802.11b packets")
 plt.xlabel("Timestamp")
 plt.show()
-'''
+
+print "Average percentage of 802.11b packets: " + str(int(mean(phyB)))
+print "Standard deviation: " + str(int(sqrt(sample_var(phyB, mean(phyB)))))
+
+''
 dataset = datafy(timestamps, phyB)
 newset = eval_algor(dataset, lin_regress, split)
 plt.plot(newset)
 plt.show()
-'''
+''
 plt.plot(timestamps, phyG, "r-")
 plt.ylabel("Percentage of 802.11g packets")
 plt.xlabel("Timestamp")
 plt.show()
-'''
+
+print "Average percentage of 802.11g packets: " + str(int(mean(phyG)))
+print "Standard deviation: " + str(int(sqrt(sample_var(phyG, mean(phyG)))))
+
+''
 dataset = datafy(timestamps, phyG)
 newset = eval_algor(dataset, lin_regress, split)
 plt.plot(newset)
 plt.show()
-'''
+''
 plt.plot(timestamps, phyN, "r-")
 plt.ylabel("Percentage of 802.11n packets")
 plt.xlabel("Timestamp")
 plt.show()
-'''
+
+print "Average percentage of 802.11n packets: " + str(int(mean(phyN)))
+print "Standard deviation: " + str(int(sqrt(sample_var(phyN, mean(phyN)))))
+
+''
 dataset = datafy(timestamps, phyN)
 newset = eval_algor(dataset, lin_regress, split)
 plt.plot(newset)
