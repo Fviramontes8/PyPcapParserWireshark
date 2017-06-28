@@ -4,9 +4,6 @@
 #include <iostream>
 #include <vector>
 #include <postgresql/libpq-fe.h>
-#include <boost/variant.hpp>
-
-typedef boost::variant<int, std::string> IntOrString;
 
 class DatabaseConnect{
 private:
@@ -17,10 +14,11 @@ private:
 	std::string username = "postgres";
 
 public:
+	int getNextKey(std::string);
 	int getTableNames();
 	int readTable(std::string);
 	int makeTable(std::string);
-	int writeData(std::string, std::vector<int>);
+	int writeData(std::string, std::string, std::vector<std::string>);
 	int connect();
 	int disconnect();
 	DatabaseConnect(std::string, std::string, std::string, std::string);

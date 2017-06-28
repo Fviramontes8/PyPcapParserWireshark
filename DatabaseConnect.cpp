@@ -86,37 +86,32 @@ int DatabaseConnect::makeTable(std::string s) {
 	return 0;
 }
 
-/*This function takes a string and a vector of 9 int elements as 
- * an input and writes the data from the vector to a database of
- * name of the string given. If there is there is any data in the 
- * database beforehand, it will add to the database.
- */
-int DatabaseConnect::writeData(std::string s, std::vector<int> p)
-{ 
-	//Must convert variables to strings to write to database
-	std::string a = std::to_string(p[0]);
-	std::string b = std::to_string(p[1]);
-	std::string c = std::to_string(p[2]);
-	std::string d = std::to_string(p[3]);
-	std::string e = std::to_string(p[4]);
-	std::string f = std::to_string(p[5]);
-	std::string g = std::to_string(p[6]);
-	std::string h = std::to_string(p[7]);
-	std::string i = std::to_string(p[8]);
-	
-	/*These two lines grab the highest key from the database (if it is 
+/*These two lines grab the highest key from the database (if it is 
 	 * empty, 0) then adds one so that we can add more data to the 
 	 * database.
 	 */
+int DatabaseConnect::getNextKey(std::string s) {
 	std::string query = "select * from " + s;
-	std::string k = std::to_string(PQntuples(PQexec(conn, query.c_str())) + 1);
-	std::cout << k << std::endl;
-	
+	int k = PQntuples(PQexec(conn, query.c_str())) + 1;
+	return k;
+}
+
+/*This function takes a string and a vector of 9 "int" elements 
+ * (converted to strings) as an input and writes the data from the
+ * vector to a database of name of the string given. If there is there
+ * is any data in the database beforehand, it will add to the database
+ * without overriding the data that was there before.
+ */
+int DatabaseConnect::writeData(std::string s, std::string k, std::vector<std::string> p)
+{ 
 	//String to write to database in sql syntax
-	std::string y = "INSERT INTO "+ s +" (Key, ts, NoU, bits, pkt_num, sigS, dR, phyb, phyg, phyn) VALUES('"+ k +"', '"+ a +"', '"+ b +"', '"+ c +"', '"+ d +"', '"+ e +"', '"+ f +"', '"+ g +"', '"+ h +"', '"+ i +"')";
+	std::string y = "INSERT INTO "+ s +" (Key, ts, NoU, bits, pkt_num, sigS, dR, phyb, phyg, phyn) VALUES('"+ k +"', '"+ p[0] +"', '"+ p[1] +"', '"+ p[2] +"', '"+ p[3] +"', '"+ p[4] +"', '"+ p[5] +"', '"+ p[6] +"', '"+ p[7] +"', '"+ p[8] +"')";
 	
 	//Executes command to write to database
 	PQexec(conn, y.c_str());
+	
+	//To avoid memory leakage
+	PQclear(PQexec(conn, y.c_str()));
 	return 0;
 }
 
