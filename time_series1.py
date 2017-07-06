@@ -181,7 +181,6 @@ n_nou_test = datafy(ts_test, nou_test)
 newset = lin_regress(n_nou, n_nou_test)
 plt.plot(newset)
 plt.show()
-print len(timestamps), len(ts_test)
 '''
 plt.plot(timestamps, bits, "r-")
 plt.ylabel("Bits")

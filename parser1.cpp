@@ -17,18 +17,10 @@
  * 
  * Output: 
  *  A vector that contains a sequence of integers that can be pushed 
- *  into a database
+ *  into a database.
  * 
  **********************************************************************/
 
-/**********************************************************************
- * ADD DELAY FN
- * CHECK FOR REPEAT FILES
- * CHECK FOR GOOD CACHE SIZE
- * 
- * #include <unistd.h>
- * usleep(x useconds);
- **********************************************************************/
 
 #include <tins/tins.h> //Header for pcap parser
 #include <iostream>
@@ -47,7 +39,7 @@ int main(int argc, char* argv[]) {
 	DatabaseConnect db("postgres", "129.24.26.137", "postgres", "Cerculsihr4T");
 	db.connect();
 	
-	std::string table_name = "pcap_6h";
+	std::string table_name = "pcap10";
 	
 	//Getting database key
 	int z = db.getNextKey(table_name);
@@ -103,7 +95,7 @@ int main(int argc, char* argv[]) {
 					fileCheck = 1;
 				}
 			}
-			if(breakout == 10) {
+			if(breakout == 5) {
 				loopbreak = 0;
 			}
 			else if(fileCheck != 0) {
@@ -113,7 +105,7 @@ int main(int argc, char* argv[]) {
 				breakout++;
 			}
 			else {
-				if(lastFiles.size() > 4) {
+				if(lastFiles.size() > 6) {
 					lastFiles.erase(lastFiles.begin());
 					lastFiles.push_back(i->path().string());
 				}
