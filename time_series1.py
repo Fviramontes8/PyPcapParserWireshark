@@ -155,6 +155,23 @@ plt.show()
 
 print "Average number of users: " + str(int(mean(nou)))
 print "Standard deviation: " + str(int(sqrt(sample_var(nou, mean(nou)))))
+<<<<<<< HEAD
+=======
+
+plt.plot(ts_test, nou_test, "r-")
+plt.ylabel("Number of users")
+plt.xlabel("Timestamp")
+plt.show()
+
+print "Average number of users: " + str(int(mean(nou_test)))
+print "Standard deviation: " + str(int(sqrt(sample_var(nou_test, mean(nou_test)))))
+
+n_nou = datafy(timestamps, nou)
+n_nou_test = datafy(ts_test, nou_test)
+newset = lin_regress(n_nou, n_nou_test)
+plt.plot(newset)
+plt.show()
+>>>>>>> 9095fe11010059d36bf47829fa78555cefcbf917
 '''
 plt.plot(timestamps, bits, "r-")
 plt.ylabel("Bits")
