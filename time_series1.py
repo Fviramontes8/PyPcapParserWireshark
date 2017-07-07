@@ -111,8 +111,7 @@ db = dc.DatabaseConnect()
 db.connect()
 #Gotta read from pcap table bb
 
-train = db.readTable("pcap_2.5h")
-test = db.readTable("pcap_6h")
+train = db.readTable("pcap10")
 #db.writeDataTable("pcap_6h")
 
 db.disconnect()
@@ -128,18 +127,7 @@ for k in sorted(train, key=lambda hello: hello[0]):
     phyB.append(int(k[7]))
     phyG.append(int(k[8]))
     phyN.append(int(k[9]))
-    
-#Data from table (in form of tuple)
-for j in sorted(test, key=lambda hello: hello[0]):
-    ts_test.append(int(j[1]))
-    nou_test.append(int(j[2]))
-    bits_test.append(int(j[3]))
-    pktNum_test.append(int(j[4]))
-    sigS_test.append(int(j[5]))
-    dr_test.append(int(j[6]))
-    b_test.append(int(j[7]))
-    g_test.append(int(j[8]))
-    n_test.append(int(j[9]))
+
     
 #print db.readDataTable("cpp_yo")
 #print db.getTableNames()
@@ -167,6 +155,8 @@ plt.show()
 
 print "Average number of users: " + str(int(mean(nou)))
 print "Standard deviation: " + str(int(sqrt(sample_var(nou, mean(nou)))))
+<<<<<<< HEAD
+=======
 
 plt.plot(ts_test, nou_test, "r-")
 plt.ylabel("Number of users")
@@ -181,6 +171,7 @@ n_nou_test = datafy(ts_test, nou_test)
 newset = lin_regress(n_nou, n_nou_test)
 plt.plot(newset)
 plt.show()
+>>>>>>> 9095fe11010059d36bf47829fa78555cefcbf917
 '''
 plt.plot(timestamps, bits, "r-")
 plt.ylabel("Bits")
