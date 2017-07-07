@@ -60,6 +60,7 @@ int main(int argc, char* argv[]) {
 	
 	//Time to iterate through the directory of chosing to parse the pcap files
 	boost::filesystem::directory_iterator end_itr;
+	usleep(100000);
 	while(loopbreak) {
 	for(boost::filesystem::directory_iterator i(path); i != end_itr; i++) {
 		//To keep track of how many packets have been parsed
@@ -95,7 +96,7 @@ int main(int argc, char* argv[]) {
 					fileCheck = 1;
 				}
 			}
-			if(breakout == 5) {
+			if(breakout == 6) {
 				loopbreak = 0;
 			}
 			else if(fileCheck != 0) {
@@ -105,7 +106,7 @@ int main(int argc, char* argv[]) {
 				breakout++;
 			}
 			else {
-				if(lastFiles.size() > 6) {
+				if(lastFiles.size() > 8) {
 					lastFiles.erase(lastFiles.begin());
 					lastFiles.push_back(i->path().string());
 				}
