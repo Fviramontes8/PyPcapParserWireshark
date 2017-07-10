@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 	DatabaseConnect db("postgres", "129.24.26.137", "postgres", "Cerculsihr4T");
 	db.connect();
 	
-	std::string table_name = "Mon_Tues";
+	std::string table_name = "mon_tues";
 	
 	//Getting database key
 	int z = db.getNextKey(table_name);
@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
 	
 	//The path given is to open the pcap files in the directory of chosing
 /**********************************************************************/
-	const std::string path("/root/Desktop/Pkt_data_live/");
+	const std::string path("/root/Pkt_data/");
 /**********************************************************************/
 	
 	//Time to iterate through the directory of chosing to parse the pcap files
@@ -246,14 +246,17 @@ int main(int argc, char* argv[]) {
 				
 				//Updating 802.11b/g/n counter with bgn being total flags
 				if(cFlags == 160) {
+					//statVect[6] += pdu.size();
 					statVect[6]++;
 					bgn++;
 				}
 				else if(cFlags == 192) {
+					//statVect[7] += pdu.size();
 					statVect[7]++;
 					bgn++;
 				}
 				else if(cFlags == 1152) {
+					//statVect[8] += pdu.size();
 					statVect[8]++;
 					bgn++;
 				}
