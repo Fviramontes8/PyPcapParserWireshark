@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 	DatabaseConnect db("postgres", "129.24.26.137", "postgres", "Cerculsihr4T");
 	db.connect();
 	
-	std::string table_name = "pcap10";
+	std::string table_name = "Mon_Tues";
 	
 	//Getting database key
 	int z = db.getNextKey(table_name);
