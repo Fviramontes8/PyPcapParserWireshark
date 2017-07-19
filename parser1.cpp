@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 	DatabaseConnect db("postgres", "129.24.26.137", "postgres", "Cerculsihr4T");
 	db.connect();
 	
-	std::string table_name = "pcap10";
+	std::string table_name = "mon_tues";
 	
 	//Getting database key
 	int z = db.getNextKey(table_name);
@@ -55,11 +55,12 @@ int main(int argc, char* argv[]) {
 	
 	//The path given is to open the pcap files in the directory of chosing
 /**********************************************************************/
-	const std::string path("/root/Desktop/Pkt_data_live/");
+	const std::string path("/root/Pkt_data/");
 /**********************************************************************/
 	
 	//Time to iterate through the directory of chosing to parse the pcap files
 	boost::filesystem::directory_iterator end_itr;
+	usleep(100000);
 	while(loopbreak) {
 	for(boost::filesystem::directory_iterator i(path); i != end_itr; i++) {
 		//To keep track of how many packets have been parsed
@@ -95,7 +96,7 @@ int main(int argc, char* argv[]) {
 					fileCheck = 1;
 				}
 			}
-			if(breakout == 5) {
+			if(breakout == 6) {
 				loopbreak = 0;
 			}
 			else if(fileCheck != 0) {
@@ -105,7 +106,7 @@ int main(int argc, char* argv[]) {
 				breakout++;
 			}
 			else {
-				if(lastFiles.size() > 6) {
+				if(lastFiles.size() > 8) {
 					lastFiles.erase(lastFiles.begin());
 					lastFiles.push_back(i->path().string());
 				}
@@ -245,14 +246,17 @@ int main(int argc, char* argv[]) {
 				
 				//Updating 802.11b/g/n counter with bgn being total flags
 				if(cFlags == 160) {
+					//statVect[6] += pdu.size();
 					statVect[6]++;
 					bgn++;
 				}
 				else if(cFlags == 192) {
+					//statVect[7] += pdu.size();
 					statVect[7]++;
 					bgn++;
 				}
 				else if(cFlags == 1152) {
+					//statVect[8] += pdu.size();
 					statVect[8]++;
 					bgn++;
 				}
