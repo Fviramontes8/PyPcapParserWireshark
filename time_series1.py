@@ -13,6 +13,15 @@ import matplotlib.pyplot as plt
 from math import sqrt
 from random import seed
 from random import randrange
+import time
+
+
+'''
+Little time pocket
+
+import time
+time.gmtime(1499722623)
+'''
 
 #Linear regression stuff
 
@@ -88,6 +97,26 @@ def datafy(data1, data2):
         dataset.append(mini_data)
     return dataset
 
+def sub_sample(sample_arr, sample_size):
+    new_sample = sample_arr.copy()
+    mean_sample = []
+    return_sample = []
+    p, new_ele = 0
+    q = (sample_size - 1)
+    while q < len(sample_arr):
+        for t in range(p, q):
+            mean_sample.append(new_sample[t])
+            
+        return_sample.append(mean(mean_sample))
+        p += (sample_size - 1)
+        q += (sample_size - 1)
+        
+        if p > len(sample_arr):
+            p = len(sample_arr)
+            for t in range(p, q):
+                mean_sample.append(new_sample[t])
+            return_sample.append(mean(mean_sample))
+
 timestamps = []
 ts_test = []
 nou = []
@@ -111,7 +140,7 @@ db = dc.DatabaseConnect()
 db.connect()
 #Gotta read from pcap table bb
 
-train = db.readTable("pcap10")
+train = db.readTable("wed")
 #db.writeDataTable("pcap_6h")
 
 db.disconnect()
@@ -148,6 +177,19 @@ plt.show()
 
 seed(1)
 
+print len(timestamps)
+
+human_time = []
+for u in timestamps:
+    human_time.append((time.localtime(u).tm_hour * 10000) + \
+                     (time.localtime(u).tm_min * 100) + time.localtime(u).tm_sec)
+
+#fri_sat & mon_tues last three are % of b/g/n tues_wed is bits for b/g/n
+plt.plot(human_time, nou, "r-")
+plt.ylabel("Number of users")
+plt.xlabel("Timestamp")
+plt.show()
+
 plt.plot(timestamps, nou, "r-")
 plt.ylabel("Number of users")
 plt.xlabel("Timestamp")
@@ -155,23 +197,7 @@ plt.show()
 
 print "Average number of users: " + str(int(mean(nou)))
 print "Standard deviation: " + str(int(sqrt(sample_var(nou, mean(nou)))))
-<<<<<<< HEAD
-=======
 
-plt.plot(ts_test, nou_test, "r-")
-plt.ylabel("Number of users")
-plt.xlabel("Timestamp")
-plt.show()
-
-print "Average number of users: " + str(int(mean(nou_test)))
-print "Standard deviation: " + str(int(sqrt(sample_var(nou_test, mean(nou_test)))))
-
-n_nou = datafy(timestamps, nou)
-n_nou_test = datafy(ts_test, nou_test)
-newset = lin_regress(n_nou, n_nou_test)
-plt.plot(newset)
-plt.show()
->>>>>>> 9095fe11010059d36bf47829fa78555cefcbf917
 '''
 plt.plot(timestamps, bits, "r-")
 plt.ylabel("Bits")
@@ -181,11 +207,6 @@ plt.show()
 print "Average bits: " + str(int(mean(bits)))
 print "Standard deviation: " + str(int(sqrt(sample_var(bits, mean(bits)))))
 
-dataset = datafy(timestamps, bits)
-newset = eval_algor(dataset, lin_regress, split)
-plt.plot(newset)
-plt.show()
-''
 plt.plot(timestamps, pktNum, "r-")
 plt.ylabel("Number of packets")
 plt.xlabel("Timestamp")
@@ -194,12 +215,6 @@ plt.show()
 print "Average number of packets: " + str(int(mean(pktNum)))
 print "Standard deviation: " + str(int(sqrt(sample_var(pktNum, mean(pktNum)))))
 
-
-dataset = datafy(timestamps, pktNum)
-newset = eval_algor(dataset, lin_regress, split)
-plt.plot(newset)
-plt.show()
-''
 plt.plot(timestamps, sigS, "r-")
 plt.ylabel("Average signal strength")
 plt.xlabel("Timestamp")
@@ -208,12 +223,6 @@ plt.show()
 print "Average signal strength: " + str(int(mean(sigS)))
 print "Standard deviation: " + str(int(sqrt(sample_var(sigS, mean(sigS)))))
 
-
-dataset = datafy(timestamps, sigS)
-newset = eval_algor(dataset, lin_regress, split)
-plt.plot(newset)
-plt.show()
-''
 plt.plot(timestamps, dataRate, "r-")
 plt.ylabel("Average data rate")
 plt.xlabel("Timestamp")
@@ -222,51 +231,27 @@ plt.show()
 print "Average data rate: " + str(int(mean(dataRate)))
 print "Standard deviation: " + str(int(sqrt(sample_var(dataRate, mean(dataRate)))))
 
-''
-dataset = datafy(timestamps, dataRate)
-newset = eval_algor(dataset, lin_regress, split)
-plt.plot(newset)
-plt.show()
-''
 plt.plot(timestamps, phyB, "r-")
-plt.ylabel("Percentage of 802.11b packets")
+plt.ylabel("Bits of 802.11b packets")
 plt.xlabel("Timestamp")
 plt.show()
 
 print "Average percentage of 802.11b packets: " + str(int(mean(phyB)))
 print "Standard deviation: " + str(int(sqrt(sample_var(phyB, mean(phyB)))))
 
-''
-dataset = datafy(timestamps, phyB)
-newset = eval_algor(dataset, lin_regress, split)
-plt.plot(newset)
-plt.show()
-''
 plt.plot(timestamps, phyG, "r-")
-plt.ylabel("Percentage of 802.11g packets")
+plt.ylabel("Bits of 802.11g packets")
 plt.xlabel("Timestamp")
 plt.show()
 
 print "Average percentage of 802.11g packets: " + str(int(mean(phyG)))
 print "Standard deviation: " + str(int(sqrt(sample_var(phyG, mean(phyG)))))
 
-''
-dataset = datafy(timestamps, phyG)
-newset = eval_algor(dataset, lin_regress, split)
-plt.plot(newset)
-plt.show()
-''
 plt.plot(timestamps, phyN, "r-")
-plt.ylabel("Percentage of 802.11n packets")
+plt.ylabel("Bits  of 802.11n packets")
 plt.xlabel("Timestamp")
 plt.show()
 
 print "Average percentage of 802.11n packets: " + str(int(mean(phyN)))
 print "Standard deviation: " + str(int(sqrt(sample_var(phyN, mean(phyN)))))
-
-''
-dataset = datafy(timestamps, phyN)
-newset = eval_algor(dataset, lin_regress, split)
-plt.plot(newset)
-plt.show()
 '''
