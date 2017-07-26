@@ -15,6 +15,8 @@ from math import sqrt
 from random import seed
 from random import randrange
 import time
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 
 
 '''
@@ -63,7 +65,9 @@ def predict(x, data, kernel, params, sigma, t):
     new_sigma = kernel(x, x, params) - np.dot(k, Sinv).dot(k)
     return y_pred, new_sigma
 
-###############################################################################
+def f(x):
+    x * np.sin(x)
+
 def sub_sample(sample_arr, sample_size):
     new_sample = sample_arr
     mean_sample = []
@@ -74,7 +78,7 @@ def sub_sample(sample_arr, sample_size):
         for t in range(p, q):
             mean_sample.append(new_sample[t])
             
-        return_sample.append(mean(mean_sample))
+        return_sample.append(int(mean(mean_sample)))
         p += sample_size
         q += sample_size
         
@@ -82,9 +86,8 @@ def sub_sample(sample_arr, sample_size):
             q = len(sample_arr)
             for t in range(p, q):
                 mean_sample.append(new_sample[t])
-            return_sample.append(mean(mean_sample))
+            return_sample.append(int(mean(mean_sample)))
     return return_sample
-###############################################################################
 
 timestamps = []
 ts_test = []
@@ -104,7 +107,7 @@ phyG = []
 g_test = []
 phyN = []
 n_test = []
-'''
+
 db = dc.DatabaseConnect()
 db.connect()
 #Gotta read from pcap table bb
@@ -130,7 +133,7 @@ for k in sorted(train, key=lambda hello: hello[0]):
 #print db.readDataTable("cpp_yo")
 #print db.getTableNames()
 
-
+'''
 #To edit only y axis of plot
 plt.ylim([y_begin, y_end])
 #plt.plot([y_values], [x_values], "color/line_styling)
@@ -146,35 +149,44 @@ plt.show()
 
 seed(1)
 
-nou_minute = sub_sample(nou, 60)
+nou_minute = sub_sample(nou, 15)
+sub_time = list(range(len(nou_minute)))
 
-theta = [1, 10]
-sig_theta = exp_cov(0, 0, theta)
-#x = nou_minute
-#y = []
-#for i in range(0, len(nou_minute)):
-#    y.append(i)
+#  First the noiseless case
+X = np.atleast_2d(sub_time).T
 
-x = [1.]
-y = [np.random.normal(scale=sig_theta)]
-m, s = conditional([-0.7], x, y, theta)
-y2 = np.random.normal(m, s)
-x.append(-0.7)
-y.append(y2)
+# Observations
+y = nou_minute
 
-x_more = [-2.1, -1.5, 0.3, 1.8, 2.5]
-mu, s = conditional(x_more, x, y, theta)
-y_more = np.random.multivariate_normal(mu, s)
-x += x_more
-y += y_more.tolist()
+# Mesh the input space for evaluations of the real function, the prediction and
+# its MSE
+x = np.atleast_2d(np.linspace(0, len(nou_minute) + 100, 1000)).T
 
-x_pred = np.linspace(-5, 5, 1000)
+# Instanciate a Gaussian Process model
+kernel = C(1.0, (1e-3, 1e3)) * RBF(10, (1e-2, 1e2))
+gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
 
-sigma_new = exp_cov(x, x, theta)
-predictions = [predict(i, x, exp_cov, theta, sigma_new, y) for i in x_pred]
-y_pred, sigmas = np.transpose(predictions)
-plt.errorbar(x_pred, y_pred, yerr = sigmas, capsize=0)
-plt.plot(x, y, "ro")
+# Fit to data using Maximum Likelihood Estimation of the parameters
+gp.fit(X, y)
+
+# Make the prediction on the meshed x-axis (ask for MSE as well)
+y_pred, sigma = gp.predict(x, return_std=True)
+
+# Plot the function, the prediction and the 95% confidence interval based on
+# the MSE
+fig = plt.figure()
+#plt.plot(x, f(x), 'r:', label=u'$f(x) = x\,\sin(x)$')
+plt.plot(X, y, 'r.', markersize=10, label=u'Observations')
+plt.plot(x, y_pred, 'b-', label=u'Prediction')
+plt.fill(np.concatenate([x, x[::-1]]),
+         np.concatenate([y_pred - 1.9600 * sigma,
+                        (y_pred + 1.9600 * sigma)[::-1]]),
+         alpha=.5, fc='b', ec='None', label='95% confidence interval')
+plt.xlabel('$x$')
+plt.ylabel('$f(x)$')
+plt.ylim(-10, 20)
+plt.xlim(len(nou_minute) -100, len(nou_minute) + 150)
+plt.legend(loc='upper left')
 
 #xpts = np.arange(-3, 3, step=0.01)
 #plt.errorbar(xpts, np.zeros(len(xpts)), yerr = sig_theta, capsize=0)
