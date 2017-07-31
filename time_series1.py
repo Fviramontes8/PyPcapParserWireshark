@@ -65,28 +65,26 @@ def predict(x, data, kernel, params, sigma, t):
     new_sigma = kernel(x, x, params) - np.dot(k, Sinv).dot(k)
     return y_pred, new_sigma
 
-def f(x):
-    x * np.sin(x)
-
 def sub_sample(sample_arr, sample_size):
     new_sample = sample_arr
-    mean_sample = []
+    #mean_sample = []
     return_sample = []
     p = 0
     q = (sample_size - 1)
     while q < len(sample_arr):
-        for t in range(p, q):
-            mean_sample.append(new_sample[t])
-            
-        return_sample.append(int(mean(mean_sample)))
+        #mean_sample.append(new_sample[p])
+        #mean_sample.append(new_sample[q])
+        return_sample.append(new_sample[q])
         p += sample_size
         q += sample_size
         
         if q > len(sample_arr):
-            q = len(sample_arr)
-            for t in range(p, q):
-                mean_sample.append(new_sample[t])
-            return_sample.append(int(mean(mean_sample)))
+            q = len(sample_arr) - 1
+            #mean_sample.append(new_sample[p])
+            #mean_sample.append(new_sample[q])
+            return_sample.append(new_sample[q])
+            #return_sample.append(int(mean(mean_sample)))
+            break
     return return_sample
 
 timestamps = []
@@ -112,7 +110,7 @@ db = dc.DatabaseConnect()
 db.connect()
 #Gotta read from pcap table bb
 
-train = db.readTable("wed")
+train = db.readTable("sat")
 #db.writeDataTable("pcap_6h")
 
 db.disconnect()
@@ -149,7 +147,11 @@ plt.show()
 
 seed(1)
 
-nou_minute = sub_sample(nou, 15)
+nou_minute = []
+
+for i in range(0, 1999):
+    nou_minute.append(nou[i])
+#nou_minute = sub_sample(nou, 60)
 sub_time = list(range(len(nou_minute)))
 
 #  First the noiseless case
@@ -160,10 +162,10 @@ y = nou_minute
 
 # Mesh the input space for evaluations of the real function, the prediction and
 # its MSE
-x = np.atleast_2d(np.linspace(0, len(nou_minute) + 100, 1000)).T
+x = np.atleast_2d(np.linspace(0, 2500, 1000)).T
 
 # Instanciate a Gaussian Process model
-kernel = C(1.0, (1e-3, 1e3)) * RBF(10, (1e-2, 1e2))
+kernel = C(1.0, (1e-3, 1e3)) * RBF(10, (1e-1, 1e1))
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
 
 # Fit to data using Maximum Likelihood Estimation of the parameters
@@ -175,27 +177,29 @@ y_pred, sigma = gp.predict(x, return_std=True)
 # Plot the function, the prediction and the 95% confidence interval based on
 # the MSE
 fig = plt.figure()
-#plt.plot(x, f(x), 'r:', label=u'$f(x) = x\,\sin(x)$')
-plt.plot(X, y, 'r.', markersize=10, label=u'Observations')
-plt.plot(x, y_pred, 'b-', label=u'Prediction')
+plt.plot(X, y, 'r.', markersize=10)
+plt.plot(x, y_pred, 'b-')
 plt.fill(np.concatenate([x, x[::-1]]),
          np.concatenate([y_pred - 1.9600 * sigma,
                         (y_pred + 1.9600 * sigma)[::-1]]),
-         alpha=.5, fc='b', ec='None', label='95% confidence interval')
+         alpha=.5, fc='b', ec='None')
 plt.xlabel('$x$')
-plt.ylabel('$f(x)$')
+plt.ylabel('$y$')
 plt.ylim(-10, 20)
-plt.xlim(len(nou_minute) -100, len(nou_minute) + 150)
-plt.legend(loc='upper left')
+plt.xlim(0, len(nou_minute))
+plt.show()
 
+'''
 #xpts = np.arange(-3, 3, step=0.01)
 #plt.errorbar(xpts, np.zeros(len(xpts)), yerr = sig_theta, capsize=0)
 
-'''
+
 human_time = []
 for u in timestamps:
     human_time.append((time.localtime(u).tm_hour * 10000) + \
                      (time.localtime(u).tm_min * 100) + time.localtime(u).tm_sec)
+
+print len(nou)
 
 plt.plot(human_time, nou, "r-")
 plt.ylabel("Number of users")
