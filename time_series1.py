@@ -10,13 +10,16 @@ of tuples and create a time series graphs based on the respective data.
 
 import DatabaseConnect as dc
 import numpy as np
+import scipy as sp
+import pylab as pb
 import matplotlib.pyplot as plt
-from math import sqrt
 from random import seed
-from random import randrange
+from math import sqrt
 import time
+from sklearn.model_selection import GridSearchCV
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as CK, Matern
+from sklearn.gaussian_process.kernels import RationalQuadratic as RQ, ExpSineSquared as ESS 
 
 
 '''
@@ -25,10 +28,6 @@ Little time pocket
 import time
 time.gmtime(1499722623)
 '''
-
-def to_float(dataset, column):
-    for row in dataset:
-        row[column] = float(row[column].strip())
 
 def mean(values):
     return sum(values) / float(len(values))
@@ -110,7 +109,7 @@ db = dc.DatabaseConnect()
 db.connect()
 #Gotta read from pcap table bb
 
-train = db.readTable("sat")
+train = db.readTable("wed")
 #db.writeDataTable("pcap_6h")
 
 db.disconnect()
@@ -142,53 +141,6 @@ plt.ylabel("Numbers yo")
 plt.show()
 
 '''
-
-#dataset1 = [timestamps, nou]
-
-seed(1)
-
-nou_minute = []
-
-for i in range(0, 1999):
-    nou_minute.append(nou[i])
-#nou_minute = sub_sample(nou, 60)
-sub_time = list(range(len(nou_minute)))
-
-#  First the noiseless case
-X = np.atleast_2d(sub_time).T
-
-# Observations
-y = nou_minute
-
-# Mesh the input space for evaluations of the real function, the prediction and
-# its MSE
-x = np.atleast_2d(np.linspace(0, 2500, 1000)).T
-
-# Instanciate a Gaussian Process model
-kernel = C(1.0, (1e-3, 1e3)) * RBF(10, (1e-1, 1e1))
-gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
-
-# Fit to data using Maximum Likelihood Estimation of the parameters
-gp.fit(X, y)
-
-# Make the prediction on the meshed x-axis (ask for MSE as well)
-y_pred, sigma = gp.predict(x, return_std=True)
-
-# Plot the function, the prediction and the 95% confidence interval based on
-# the MSE
-fig = plt.figure()
-plt.plot(X, y, 'r.', markersize=10)
-plt.plot(x, y_pred, 'b-')
-plt.fill(np.concatenate([x, x[::-1]]),
-         np.concatenate([y_pred - 1.9600 * sigma,
-                        (y_pred + 1.9600 * sigma)[::-1]]),
-         alpha=.5, fc='b', ec='None')
-plt.xlabel('$x$')
-plt.ylabel('$y$')
-plt.ylim(-10, 20)
-plt.xlim(0, len(nou_minute))
-plt.show()
-
 '''
 #xpts = np.arange(-3, 3, step=0.01)
 #plt.errorbar(xpts, np.zeros(len(xpts)), yerr = sig_theta, capsize=0)
@@ -209,12 +161,13 @@ plt.show()
 plt.plot(timestamps, nou, "r-")
 plt.ylabel("Number of users")
 plt.xlabel("Timestamp")
+#plt.xlim(timestamps[0], timestamps[0] + 1500)
 plt.show()
 
 print "Average number of users: " + str(int(mean(nou)))
 print "Standard deviation: " + str(int(sqrt(sample_var(nou, mean(nou)))))
 
-
+###########################
 plt.plot(timestamps, bits, "r-")
 plt.ylabel("Bits")
 plt.xlabel("Timestamp")
@@ -271,3 +224,110 @@ plt.show()
 print "Average percentage of 802.11n packets: " + str(int(mean(phyN)))
 print "Standard deviation: " + str(int(sqrt(sample_var(phyN, mean(phyN)))))
 '''
+
+'''
+1.0 * RBF(length_scale=1.0, length_scale_bounds=(1e-1, 10.0))
+
+1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
+1.0 * ExpSineSquared(length_scale=1.0, periodicity=3.0, 
+                     length_scale_bounds=(0.1, 10.0),
+                     periodicity_bounds=(1.0, 10.0))
+ConstantKernel(0.1, (0.01, 10.0))*(DotProduct(sigma_0=1.0, sigma_0_bounds=(0.0, 10.0)) ** 2)
+1.0 * Matern(length_scale=1.0, length_scale_bounds=(1e-1, 10.0), nu=1.5)
+'''
+
+
+seed(1)
+
+nou_minute = []
+nou_ts = []
+
+for i in range(0, 250):
+    nou_minute.append(nou[i])
+    nou_ts.append(timestamps[i])
+    
+nou_cross_test = []
+ts_cross_test = []
+for j in range(250, 500):
+    nou_cross_test.append(nou[j])
+    ts_cross_test.append(timestamps[j])
+
+y_test = np.atleast_2d(nou_cross_test).T
+
+#nou_minute = sub_sample(nou, 60)
+#sub_time = list(range(len(nou_minute)))
+
+#  First the noiseless case
+X = np.atleast_2d(nou_ts).T
+#print X
+
+# Observations
+y = nou_minute
+
+# Mesh the input space for evaluations of the real function, the prediction and
+# its MSE
+x = np.atleast_2d(ts_cross_test).T #np.linspace(1000, 1999, 1000)
+#print "______________\n", x
+
+# Instanciate a Gaussian Process model
+# Changing nu value does not make notable difference for matern kernel
+
+kernel = RBF()
+#ESS(length_scale=2, periodicity=10, length_scale_bounds=(5e-3, 5e3),periodicity_bounds=(5e-3, 5e3)) 
+
+gp = GaussianProcessRegressor(kernel=kernel, normalize_y=True,\
+                              n_restarts_optimizer=10)
+
+param_grid = [{'kernel': [RBF()],
+               'kernel__length_scale_bounds': [(3e-3, 3e3), (35e-2, 35e2)], 
+               'kernel__length_scale': [2, 3, 4, 25, 50, 75, 100],
+               'n_restarts_optimizer': [10, 15, 20, 25]}]
+
+grid_search = GridSearchCV(gp, param_grid)
+#print gp.get_params().keys()
+print "About to fit", "\n___________________________________________________\n"
+grid_search.fit(X, y)
+
+print grid_search.best_params_
+for i in grid_search.best_params_:
+    print i
+# Fit to data using Maximum Likelihood Estimation of the parameters
+#gp.fit(X, y)
+#print "Fitting done"
+#print gp.get_params()
+
+#print "Marginal likelihood: ", gp.log_marginal_likelihood()
+#print gp.score(X, y)
+'''
+# Make the prediction on the meshed x-axis (ask for MSE as well)
+y_pred0, sigma0 = gp.predict(X, return_std=True)
+y_pred, sigma = gp.predict(x, return_std=True)
+print "Predicting done"
+print "__________\n", gp.score(y_pred.reshape(-1, 1), y_test)
+
+# Plot the function, the prediction and the 95% confidence interval based on
+# the MSE
+fig = plt.figure()
+nounou_minute = []
+
+
+plt.plot(timestamps, nou, 'r.', markersize=5)
+plt.plot(X, y_pred0, "g--")
+plt.plot(x, y_pred, 'b+')
+plt.fill(np.concatenate([X, X[::-1]]),
+         np.concatenate([y_pred0-1.96*sigma0,
+                         (y_pred0+1.96*sigma0)[::-1]]),
+        alpha=0.5, fc="g", ec="None")
+plt.fill(np.concatenate([x, x[::-1]]),
+         np.concatenate([y_pred-1.96*sigma,
+                        (y_pred+1.96*sigma)[::-1]]),
+         alpha=.5, fc='b', ec='None')
+plt.xlabel('$x$')
+plt.ylabel('$y$')
+plt.ylim(-1, 20)
+plt.xlim(timestamps[0], timestamps[0] + 600)
+plt.show()
+print "Mean: " + str(mean(nou_minute))
+'''
+#import GPy
+

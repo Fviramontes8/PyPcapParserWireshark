@@ -102,7 +102,7 @@ def IOfy(x):
     return g, h
 
 #x = np.array(list(range(100)))
-x = np.random.random(200)
+x = np.random.randint(0, 100, 50)
 #print x
 
 X= buffer(x, 4, 3, opt="nodelay")
@@ -120,7 +120,7 @@ w = np.linalg.inv(Xtr.dot(Xtr.T) + gamma * np.eye(4)).dot(Xtr.dot(Ytr.T))
 
 #print "Weights:\n", w
 
-X_data = list(np.random.random(200))
+X_data = list(np.random.randint(0, 100, 50))
 #print "Data:\n" , X_data
 Xdata = buffer(X_data, 4, 3, "nodelay")
 #print "Molded data:\n", Xdata
@@ -134,7 +134,7 @@ Xtst = bottom_row_ones(Xdata)
 #print "Y test:\n", Ytst
 
 y =(w.T).dot(Xtst)
-#print y
+print y
 
 plt.plot(Ytst, "b-")
 plt.plot(y, "g-")
