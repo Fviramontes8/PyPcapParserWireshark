@@ -8,7 +8,14 @@ Created on Wed Aug 16 16:45:17 2017
 import numpy as np
 np.set_printoptions(threshold=np.inf)
 
+import matplotlib
 import matplotlib.pyplot as plt
+
+def mean(values):
+    return sum(values) / float(len(values))
+
+def variance(values, mean):
+    return sum([(x-mean)**2 for x in values])
 
 def buffer(x, n, p=0, opt=None):
     #Original author: ryanjdillon
@@ -36,7 +43,7 @@ def buffer(x, n, p=0, opt=None):
     cols = int(np.floor(len(x)-n/float((n-p)))) + 1
     '''
     cols = int(np.floor(len(x)-n/float((n-p)))) + 1
-
+    
     # Check for opt parameters
     if opt == 'nodelay':
         # Need extra column to handle additional values left
@@ -101,11 +108,18 @@ def IOfy(x):
     h = x[len(x) - 1]
     return g, h
 
-#x = np.array(list(range(100)))
-x = np.random.randint(0, 100, 50)
-#print x
+def chi_test(x, y):
+    #x is test and y is true values
+    u = sum((y-x)**2)
+    v = sum((y - mean(y))**2)
+    return 1 - (u/v)
 
-X= buffer(x, 4, 3, opt="nodelay")
+from scipy.signal import lfilter
+a = [1,-1.161917483671733,0.695942755789651,-0.137761301259893]
+b = [0.049532996357253,0.148598989071760,0.148598989071760,0.049532996357253]
+hu = lfilter(b, a, np.random.randn(1,100))[0]
+
+X= buffer(hu, 4, 3, opt="nodelay")
 #print "Data: ", X
 
 
@@ -115,13 +129,15 @@ Ytr = np.array(outputing)
 Xtr = bottom_row_ones(X)
 #print "Training X: \n", Xtr
 #print "Observations:\n", Ytr
-gamma = 0.001
+gamma = 1e-3
 w = np.linalg.inv(Xtr.dot(Xtr.T) + gamma * np.eye(4)).dot(Xtr.dot(Ytr.T))
 
 #print "Weights:\n", w
 
-X_data = list(np.random.randint(0, 100, 50))
+        #Prediction
+X_data = lfilter(b, a, np.random.randn(1,100))[0]
 #print "Data:\n" , X_data
+#xdata = 100 * np.sin(X_data)
 Xdata = buffer(X_data, 4, 3, "nodelay")
 #print "Molded data:\n", Xdata
 inputin, outputin = IOfy(Xdata)
@@ -133,9 +149,73 @@ Xtst = bottom_row_ones(Xdata)
 #print "X test:\n", Xtst
 #print "Y test:\n", Ytst
 
-y =(w.T).dot(Xtst)
-print y
+y = w.T.dot(Xtst)
+#print "Predicted values", y
 
-plt.plot(Ytst, "b-")
-plt.plot(y, "g-")
+plt.plot(Ytst, "b-.", label="Real")
+plt.plot(y, "g--.", label="Predicted")
+plt.legend()
+plt.show()
 
+#print chi_test(y, Ytst)
+
+
+
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF
+
+
+skxtr = np.atleast_2d(Xtr).T
+skytr = list(Ytr)
+
+skxtst = np.atleast_2d(Xtst).T
+
+kernel = RBF(length_scale=1, length_scale_bounds=(1e-4, 1e4))
+
+gp = GaussianProcessRegressor(kernel=kernel, normalize_y=True,\
+                              optimizer='fmin_l_bfgs_b',\
+                              n_restarts_optimizer = 10)
+
+
+y_pred = gp.predict(skxtst)
+plt.plot(Ytst, "r-", label="Real")
+plt.plot(y_pred, "k--", label="Predicted")
+plt.legend()
+plt.show()
+
+
+import GPy
+
+
+kernel = GPy.kern.RBF(input_dim=1, variance=1, lengthscale=1)
+iop = np.atleast_2d([u for u in Xtr[0]]).T
+chiop = np.atleast_2d(Ytr).T
+
+m = GPy.models.GPRegression(X=iop, Y=chiop, kernel=kernel)
+iop_new = np.atleast_2d(Xtst)
+
+m.plot(plot_limits=(-2.0, 5.0))
+plt.show()
+
+print "likelihood: ", m.log_likelihood()
+
+ypred, ysigma = m.predict(Xnew=iop_new, kern=kernel)
+
+plt.plot(ypred, "r--", label="GPy")
+
+m.optimize(optimizer="lbfgs")
+
+#print m
+
+ypred, ysigma = m.predict(Xnew=iop_new, kern=kernel)
+
+plt.plot(ypred, "c-", label="GPy2")
+
+plt.legend()
+plt.show()
+
+m.optimize_restarts(num_restarts=4)
+
+ypred, ysigma = m.predict(Xnew=iop_new, kern=kernel)
+
+m.plot(plot_limits=(-2.0, 5.0))

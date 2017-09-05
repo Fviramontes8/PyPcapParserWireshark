@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 from random import seed
 from math import sqrt
 import time
-from sklearn.model_selection import GridSearchCV
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as CK, Matern
 from sklearn.gaussian_process.kernels import RationalQuadratic as RQ, ExpSineSquared as ESS 
@@ -66,50 +65,58 @@ def predict(x, data, kernel, params, sigma, t):
 
 def sub_sample(sample_arr, sample_size):
     new_sample = sample_arr
-    #mean_sample = []
     return_sample = []
     p = 0
     q = (sample_size - 1)
     while q < len(sample_arr):
-        #mean_sample.append(new_sample[p])
-        #mean_sample.append(new_sample[q])
         return_sample.append(new_sample[q])
         p += sample_size
         q += sample_size
         
-        if q > len(sample_arr):
+        if q >= len(sample_arr) - 1:
             q = len(sample_arr) - 1
-            #mean_sample.append(new_sample[p])
-            #mean_sample.append(new_sample[q])
             return_sample.append(new_sample[q])
-            #return_sample.append(int(mean(mean_sample)))
             break
     return return_sample
 
+def avg_sample(sample_arr, sample_size):
+    a = sample_arr
+    sample_return = []
+    j = 0
+    k = sample_size - 1
+    while k < len(a):
+        m = []
+        for i in range(j, k):
+            m.append(a[i])
+        sample_return.append(int(mean(m)))
+        j += sample_size - 1
+        k += sample_size - 1
+        if k >= len(a):
+            m = []
+            k = len(a)
+            for i in range(j, k):
+                m.append(a[i])
+            sample_return.append(int(mean(m)))
+            break
+        
+    return sample_return
+
 timestamps = []
-ts_test = []
 nou = []
-nou_test = []
 bits = []
-bits_test = []
 pktNum = []
-pktNum_test = []
 sigS = []
-sigS_test = []
 dataRate = []
-dr_test = []
 phyB = []
-b_test = []
 phyG = []
-g_test = []
 phyN = []
-n_test = []
 
 db = dc.DatabaseConnect()
 db.connect()
 #Gotta read from pcap table bb
 
-train = db.readTable("wed")
+#Need to do recapture of wed
+train = db.readTable("mon")
 #db.writeDataTable("pcap_6h")
 
 db.disconnect()
@@ -141,7 +148,7 @@ plt.ylabel("Numbers yo")
 plt.show()
 
 '''
-'''
+
 #xpts = np.arange(-3, 3, step=0.01)
 #plt.errorbar(xpts, np.zeros(len(xpts)), yerr = sig_theta, capsize=0)
 
@@ -166,7 +173,7 @@ plt.show()
 
 print "Average number of users: " + str(int(mean(nou)))
 print "Standard deviation: " + str(int(sqrt(sample_var(nou, mean(nou)))))
-
+'''
 ###########################
 plt.plot(timestamps, bits, "r-")
 plt.ylabel("Bits")
@@ -242,13 +249,51 @@ seed(1)
 nou_minute = []
 nou_ts = []
 
-for i in range(0, 250):
+#Overfits
+'''
+print ("\t\t\t 1 min")
+avg_n1m = avg_sample(nou, 60) #len = 1242
+sub_n1m = sub_sample(nou, 60) #len = 1222
+plt.plot(avg_n1m, "y-")
+plt.show()
+plt.plot(sub_n1m, "m-")
+plt.show()
+
+#Also Overfits
+print ("\n\t\t\t 10 min")
+avg_n10m = avg_sample(nou, 600) #len = 123
+sub_n10m = sub_sample(nou, 600) #len = 123
+plt.plot(avg_n10m, "y-")
+plt.show()
+plt.plot(sub_n10m, "m-")
+plt.show()
+
+
+print ("\n\t\t\t 30 min")
+avg_n30m = avg_sample(nou, 1800) #len = 41
+sub_n30m = sub_sample(nou, 1800) #len = 41
+plt.plot(avg_n30m, "c-")
+plt.show()
+plt.plot(sub_n30m, "g-")
+plt.show()
+'''
+print ("\n\t\t\t 1 hr")
+avg_n1hr = avg_sample(nou, 3600) #len = 21
+sub_n1hr = sub_sample(nou, 3600) #len = 21
+plt.plot(avg_n1hr, "c-")
+plt.show()
+plt.plot(sub_n1hr, "g-")
+plt.show()
+
+
+'''
+for i in range(0, 110):
     nou_minute.append(nou[i])
     nou_ts.append(timestamps[i])
     
 nou_cross_test = []
 ts_cross_test = []
-for j in range(250, 500):
+for j in range(110, 130):
     nou_cross_test.append(nou[j])
     ts_cross_test.append(timestamps[j])
 
@@ -256,78 +301,82 @@ y_test = np.atleast_2d(nou_cross_test).T
 
 #nou_minute = sub_sample(nou, 60)
 #sub_time = list(range(len(nou_minute)))
-
+'''
 #  First the noiseless case
-X = np.atleast_2d(nou_ts).T
+avg_zed1 = list(range(len(avg_n1hr)))
+X_avg1 = np.atleast_2d(avg_zed1).T
 #print X
 
 # Observations
-y = nou_minute
+y_avg1 = avg_n1hr
 
 # Mesh the input space for evaluations of the real function, the prediction and
 # its MSE
-x = np.atleast_2d(ts_cross_test).T #np.linspace(1000, 1999, 1000)
+x_avg1 = np.atleast_2d(list(range(len(avg_n1hr), 2 * len(avg_n1hr)))).T #np.linspace(1000, 1999, 1000)
 #print "______________\n", x
 
 # Instanciate a Gaussian Process model
 # Changing nu value does not make notable difference for matern kernel
 
-kernel = RBF()
+kernel = RBF(length_scale=1, length_scale_bounds=(1e-1,1e1))
 #ESS(length_scale=2, periodicity=10, length_scale_bounds=(5e-3, 5e3),periodicity_bounds=(5e-3, 5e3)) 
 
-gp = GaussianProcessRegressor(kernel=kernel, normalize_y=True,\
-                              n_restarts_optimizer=10)
+gp = GaussianProcessRegressor(kernel=kernel, normalize_y=False,\
+                              n_restarts_optimizer=15)
 
-param_grid = [{'kernel': [RBF()],
-               'kernel__length_scale_bounds': [(3e-3, 3e3), (35e-2, 35e2)], 
-               'kernel__length_scale': [2, 3, 4, 25, 50, 75, 100],
-               'n_restarts_optimizer': [10, 15, 20, 25]}]
 
-grid_search = GridSearchCV(gp, param_grid)
-#print gp.get_params().keys()
-print "About to fit", "\n___________________________________________________\n"
-grid_search.fit(X, y)
-
-print grid_search.best_params_
-for i in grid_search.best_params_:
-    print i
 # Fit to data using Maximum Likelihood Estimation of the parameters
-#gp.fit(X, y)
+gp.fit(X_avg1, y_avg1)
 #print "Fitting done"
 #print gp.get_params()
 
-#print "Marginal likelihood: ", gp.log_marginal_likelihood()
+print "Marginal likelihood: ", gp.log_marginal_likelihood()
 #print gp.score(X, y)
-'''
 # Make the prediction on the meshed x-axis (ask for MSE as well)
-y_pred0, sigma0 = gp.predict(X, return_std=True)
-y_pred, sigma = gp.predict(x, return_std=True)
+y_pred0, sigma0 = gp.predict(X_avg1, return_std=True)
+y_pred, sigma = gp.predict(x_avg1, return_std=True)
 print "Predicting done"
-print "__________\n", gp.score(y_pred.reshape(-1, 1), y_test)
+#print "__________\n", gp.score(y_pred.reshape(-1, 1), y_test)
 
 # Plot the function, the prediction and the 95% confidence interval based on
 # the MSE
 fig = plt.figure()
 nounou_minute = []
 
-
-plt.plot(timestamps, nou, 'r.', markersize=5)
-plt.plot(X, y_pred0, "g--")
-plt.plot(x, y_pred, 'b+')
-plt.fill(np.concatenate([X, X[::-1]]),
+plt.plot(X_avg1, y_pred0, "g--")
+plt.plot(x_avg1, y_pred, 'b--')
+plt.fill(np.concatenate([X_avg1, X_avg1[::-1]]),
          np.concatenate([y_pred0-1.96*sigma0,
                          (y_pred0+1.96*sigma0)[::-1]]),
         alpha=0.5, fc="g", ec="None")
-plt.fill(np.concatenate([x, x[::-1]]),
+plt.fill(np.concatenate([x_avg1, x_avg1[::-1]]),
          np.concatenate([y_pred-1.96*sigma,
                         (y_pred+1.96*sigma)[::-1]]),
          alpha=.5, fc='b', ec='None')
 plt.xlabel('$x$')
 plt.ylabel('$y$')
 plt.ylim(-1, 20)
-plt.xlim(timestamps[0], timestamps[0] + 600)
 plt.show()
-print "Mean: " + str(mean(nou_minute))
-'''
-#import GPy
 
+sub_zed1 = list(range(len(sub_n1hr)))
+X_sub1 = np.atleast_2d(sub_zed1).T
+y_sub1 = sub_n1hr
+x_sub1 = np.atleast_2d(list(range(len(sub_n1hr), 2 * len(sub_n1hr)))).T
+gp.fit(X_sub1, y_sub1)
+y_pred01, sigma01 = gp.predict(X_sub1, return_std=True)
+y_pred1, sigma1 = gp.predict(x_sub1, return_std=True)
+fig = plt.figure()
+plt.plot(X_sub1, y_pred01, "g--")
+plt.plot(x_sub1, y_pred1, 'b--')
+plt.fill(np.concatenate([X_sub1, X_sub1[::-1]]),
+         np.concatenate([y_pred01-1.96*sigma01,
+                         (y_pred01+1.96*sigma01)[::-1]]),
+        alpha=0.5, fc="g", ec="None")
+plt.fill(np.concatenate([x_sub1, x_sub1[::-1]]),
+         np.concatenate([y_pred1-1.96*sigma1,
+                        (y_pred1+1.96*sigma1)[::-1]]),
+         alpha=.5, fc='b', ec='None')
+plt.xlabel('$x$')
+plt.ylabel('$y$')
+plt.ylim(-1, 20)
+plt.show()
