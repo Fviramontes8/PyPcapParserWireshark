@@ -11,11 +11,10 @@ np.set_printoptions(threshold=np.nan)
 #import pylab as pb
 import matplotlib.pyplot as plt
 #from random import seed
-from math import sqrt
-import time
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
-#, ConstantKernel as CK, Matern
+#, ConstantKernel as CK
+#, Matern
 #from sklearn.gaussian_process.kernels import RationalQuadratic as RQ, ExpSineSquared as ESS 
 
 def mean(values):
@@ -49,9 +48,6 @@ def sub_sample(sample_arr, sample_size):
             break
     return return_sample
 
-def grab_n(array, length):
-    return np.atleast_1d([array[i] for i in range(length)]).T
-
 def avg_sample(sample_arr, sample_size):
     a = sample_arr
     sample_return = []
@@ -71,8 +67,10 @@ def avg_sample(sample_arr, sample_size):
                 m.append(a[i])
             sample_return.append(int(mean(m)))
             break
-        
     return sample_return
+
+def grab_n(array, length):
+    return np.atleast_1d([array[i] for i in range(length)]).T
 
 #Main:
 timestamps = []
@@ -106,7 +104,7 @@ for k in sorted(train, key=lambda hello: hello[0]):
     phyB.append(int(k[7]))
     phyG.append(int(k[8]))
     phyN.append(int(k[9]))
-    
+'''  
 human_time = []
 for u in timestamps:
     human_time.append((time.localtime(u).tm_hour * 10000) + \
@@ -118,55 +116,78 @@ plt.plot(human_time, nou, "r-")
 plt.ylabel("Number of users")
 plt.xlabel("Timestamp")
 plt.show()
-
+'''
 plt.plot(timestamps, nou, "r-")
 plt.ylabel("Number of users")
 plt.xlabel("Timestamp")
 plt.show()
 
 print "Average number of users: " + str(int(mean(nou)))
-print "Standard deviation: " + str(int(sqrt(sample_var(nou, mean(nou)))))
+print "Standard deviation: " + str(int(np.sqrt(sample_var(nou, mean(nou)))))
 
 #Trying grabbing the first ten to predict 11th
 n = 10
 nou10 = grab_n(nou, n)
+#sub_sample(nou, 3600)
+#avg_sample(nou, 3600)
 bits10 = grab_n(bits, n)
+#sub_sample(bits, 3600)
+#avg_sample(bits, 3600)
 pktN10 = grab_n(pktNum, n)
+#sub_sample(pktNum, 3600)
+#avg_sample(pktNum, 3600)
 sigS10 = grab_n(sigS, n)
+#sub_sample(sigS, 3600)
+#avg_sample(sigS, 3600)
 dR10 = grab_n(dataRate, n)
+#sub_sample(dataRate, 3600)
+#avg_sample(dataRate, 3600)
 pB10 = grab_n(phyB, n)
+#sub_sample(phyB, 3600)
+#avg_sample(phyB, 3600)
 pG10 = grab_n(phyG, n)
+#sub_sample(phyG, 3600)
+#avg_sample(phyG, 3600)
 pN10 = grab_n(phyN, n)
+#sub_sample(phyN, 3600) 
+#avg_sample(phyN, 3600)
 
-y = np.atleast_2d([nou10, bits10, pktN10, sigS10, dR10, pB10, pG10, pN10])
-print y
-X = np.atleast_2d([[i for i in range(10)]]*8)
-x = np.atleast_2d([[i for i in range(10, 20)]]*8)
-print x
+y = np.atleast_2d([nou10, bits10, pktN10, sigS10, dR10, pB10, pG10, pN10]).T
+nu = y.shape[0]
+
+X = np.atleast_2d([[i for i in range(nu)]]).T
+x =  np.atleast_2d([[i for i in range(nu, nu + 1)]])
+
 
 kernel = RBF(length_scale=1, length_scale_bounds=(1e-1, 1e1))
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,\
                               normalize_y=True)
 print X
+print y
 gp.fit(X, y)
 
 print ("Marginal likelihood: ", gp.log_marginal_likelihood())
 
-y_p, sigma_p = gp.predict(X, return_std=True)
-y_p1, sigma_p1 = gp.predict(x, return_std=True)
+print x
+y_p = gp.predict(X)
+print y_p
 
-print (y_p)
+y_p1, sigma_p1 = gp.predict(x, return_std=True)
+print "Predicted:", [int(y_p1[0][0]), int(y_p1[0][1]), int(y_p1[0][2]),\
+                      int(y_p1[0][3]), int(y_p1[0][4]), int(y_p1[0][5]),\
+                      int(y_p1[0][6]), int(y_p1[0][7])]
+
+print "Real:", [nou[nu], bits[nu], pktNum[nu], sigS[nu], dataRate[nu],\
+                phyB[nu], phyG[nu], phyN[nu]]
+
+'''
+print (y_p.T)
 
 plt.plot(nou10, "k-")
 plt.show()
-plt.plot((y_p.T)[0], "m-")
+plt.plot((y_p)[0], "m-")
 plt.show()
-'''
-plt.plot(X, y_p, "m-.")
 plt.plot(x, y_p1, "c-.")
-plt.fill(np.concatenate([x, x[::-1]]),
-         np.concatenate([y_p1-1.96*sigma_p1,(y_p1+1.96*sigma_p1)[::-1]]),
-         alpha=0.5, fc="c", ec="None")
 plt.xlabel('$x$')
 plt.ylabel('$y$')
 plt.show()
