@@ -85,7 +85,6 @@ phyN = []
 
 db = dc.DatabaseConnect()
 db.connect()
-#Gotta read from pcap table bb
 
 #Need to do recapture of wed
 train = db.readTable("mon")
@@ -116,17 +115,17 @@ plt.plot(human_time, nou, "r-")
 plt.ylabel("Number of users")
 plt.xlabel("Timestamp")
 plt.show()
-'''
+
 plt.plot(timestamps, nou, "r-")
 plt.ylabel("Number of users")
 plt.xlabel("Timestamp")
 plt.show()
-
+'''
 print "Average number of users: " + str(int(mean(nou)))
 print "Standard deviation: " + str(int(np.sqrt(sample_var(nou, mean(nou)))))
 
 #Trying grabbing the first ten to predict 11th
-n = 10
+n = 5000
 nou10 = grab_n(nou, n)
 #sub_sample(nou, 3600)
 #avg_sample(nou, 3600)
@@ -156,28 +155,31 @@ y = np.atleast_2d([nou10, bits10, pktN10, sigS10, dR10, pB10, pG10, pN10]).T
 nu = y.shape[0]
 
 X = np.atleast_2d([[i for i in range(nu)]]).T
-x =  np.atleast_2d([[i for i in range(nu, nu + 1)]])
+x =  np.atleast_2d([[i for i in range(nu, nu + 1)]]).T
 
 
-kernel = RBF(length_scale=1, length_scale_bounds=(1e-1, 1e1))
+kernel = RBF(length_scale=1, length_scale_bounds=(2e-1, 2))
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,\
                               normalize_y=True)
-print X
-print y
+#print X
+#print y
 gp.fit(X, y)
 
 print ("Marginal likelihood: ", gp.log_marginal_likelihood())
 
-print x
+#print x
 y_p = gp.predict(X)
-print y_p
+#print y_p
 
 y_p1, sigma_p1 = gp.predict(x, return_std=True)
+print "Means:\t", [int(mean(nou10)), int(mean(bits10)), int(mean(pktN10)),\
+                 int(mean(sigS10)), int(mean(dR10)), int(mean(pB10)),\
+                 int(mean(pG10)), int(mean(pN10))]
 print "Predicted:", [int(y_p1[0][0]), int(y_p1[0][1]), int(y_p1[0][2]),\
                       int(y_p1[0][3]), int(y_p1[0][4]), int(y_p1[0][5]),\
                       int(y_p1[0][6]), int(y_p1[0][7])]
 
-print "Real:", [nou[nu], bits[nu], pktNum[nu], sigS[nu], dataRate[nu],\
+print "Real:\t", [nou[nu], bits[nu], pktNum[nu], sigS[nu], dataRate[nu],\
                 phyB[nu], phyG[nu], phyN[nu]]
 
 '''
