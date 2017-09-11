@@ -1,7 +1,8 @@
 '''
 author: Seth Decker
 
-Description: This code interfaces to a database. It can build tables, read tables, and write to tables.
+Description: This code interfaces to a database. It can build tables, 
+read tables, and write to tables.
 
 
 Example:
