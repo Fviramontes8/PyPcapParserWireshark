@@ -47,21 +47,13 @@ int DatabaseConnect::connect()
     }
 	return 0;
 }
-/*
-int DatabaseConnect::getTableNames() {
-	PQexec(conn, "select rename from pg_class where relkind='r' and relname !~ '^(pg_|sql_)';");
+
+int DatabaseConnect::deleteTableContent(std::string v) {
+	std::string u = "DELETE FROM " + v;
+	PQexec(conn, u.c_str());
+	return 0;
 }
 
-int DatabaseConnect::readTable() {
-	std::string query = "select * from {} as a";
-	PQexec(conn, query)
-	
-	std::string t_name = "pcap";
-	std::string q = "select * from " + s;
-	std::cout << q << std::endl;
-	return 0
-}
-*/
 
 /*Given a string input this function will make a table under the name of
  * the input string. It will have these columns (all integers):

@@ -15,6 +15,7 @@ private:
 
 public:
 	int getNextKey(std::string);
+	int deleteTableContent(std::string);
 	int getTableNames();
 	int readTable(std::string);
 	int makeTable(std::string);

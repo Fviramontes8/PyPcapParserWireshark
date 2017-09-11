@@ -38,8 +38,8 @@ int main(int argc, char* argv[]) {
 	//Opening connection with database
 	DatabaseConnect db("postgres", "129.24.26.137", "postgres", "Cerculsihr4T");
 	db.connect();
-	
-	std::string table_name = "mon_tues";
+	//This is for the table we would like to write to
+	std::string table_name = "tues";
 	
 	//Getting database key
 	int z = db.getNextKey(table_name);
@@ -55,11 +55,12 @@ int main(int argc, char* argv[]) {
 	
 	//The path given is to open the pcap files in the directory of chosing
 /**********************************************************************/
-	const std::string path("/root/Pkt_data/");
+	const std::string path("/root/Pkt_data/tues/");
 /**********************************************************************/
 	
 	//Time to iterate through the directory of chosing to parse the pcap files
 	boost::filesystem::directory_iterator end_itr;
+	//Wait 0.1 seconds before parsing
 	usleep(100000);
 	while(loopbreak) {
 	for(boost::filesystem::directory_iterator i(path); i != end_itr; i++) {
@@ -92,21 +93,30 @@ int main(int argc, char* argv[]) {
 		if(i->path().extension() == ".pcap") {
 			int fileCheck = 0;
 			for(auto& t : lastFiles) {
+				//If file is new file check is flipped to 1 and is parsed
 				if(t == i->path().string()) {
 					fileCheck = 1;
 				}
 			}
+			std::cout << fileCheck << std::endl;
 			if(breakout == 6) {
+				//This means that the parser has waited long enough
+				// and will end
 				loopbreak = 0;
+				db.disconnect();
 			}
 			else if(fileCheck != 0) {
 				std::cout << "Waiting..." << std::endl;
-				usleep(1000000);
+				//Waiting 0.9 seconds
+				usleep(900000);
+				//fileCheck is flipped to 0 because no more unique files
 				fileCheck = 0;
+				//If breakout reaches 6 the parser will end
 				breakout++;
 			}
 			else {
 				if(lastFiles.size() > 8) {
+					//Adds file name to list of files so it is not parsed again
 					lastFiles.erase(lastFiles.begin());
 					lastFiles.push_back(i->path().string());
 				}
@@ -119,20 +129,10 @@ int main(int argc, char* argv[]) {
 			breakout = 0;
 			count = 1;
 			
-/***********************************************************************
- * Try making vector size 3 and adding file names to it
- * when full, use myVector.erase(myVector.begin()); to pop first element
- * push_back the next file.
- * ********************************************************************/
-			
+			//Beginning to parse the packet
 			while(Packet pkt = sniffer.next_packet())  {
 				//Packet object
 				const PDU &pdu = *pkt.pdu();
-				
-				/*/Prints out every 100th packet
-				if(count % 100 == 0){
-					std::cout << "Packet: " << count << std::endl;
-				}*/
 				
 				//Declaration of important variables
 				std::string M_src = "None";
@@ -246,18 +246,18 @@ int main(int argc, char* argv[]) {
 				
 				//Updating 802.11b/g/n counter with bgn being total flags
 				if(cFlags == 160) {
-					//statVect[6] += pdu.size();
-					statVect[6]++;
+					statVect[6] += pdu.size();
+					//statVect[6]++;
 					bgn++;
 				}
 				else if(cFlags == 192) {
-					//statVect[7] += pdu.size();
-					statVect[7]++;
+					statVect[7] += pdu.size();
+					//statVect[7]++;
 					bgn++;
 				}
 				else if(cFlags == 1152) {
-					//statVect[8] += pdu.size();
-					statVect[8]++;
+					statVect[8] += pdu.size();
+					//statVect[8]++;
 					bgn++;
 				}
 					
@@ -276,10 +276,12 @@ int main(int argc, char* argv[]) {
 			statVect[4] = statVect[4] / statVect[3];
 			//Taking average data rate
 			statVect[5] = statVect[5] / statVect[3];
-			statVect[6] = (static_cast<float>(statVect[6]) / bgn) * 100;
-			statVect[7] = (static_cast<float>(statVect[7]) / bgn) * 100;
-			statVect[8] = (static_cast<float>(statVect[8]) / bgn) * 100;
-			
+//This commented section is for percentage of 802.11x used of 802.11b/g/n
+/***********************************************************************
+			//statVect[6] = (static_cast<float>(statVect[6]) / bgn) * 100;
+			//statVect[7] = (static_cast<float>(statVect[7]) / bgn) * 100;
+			//statVect[8] = (static_cast<float>(statVect[8]) / bgn) * 100;
+***********************************************************************/			
 			std::vector<std::string> stringVect(9);
 			for(int i = 0; i < 9; i++) {
 				stringVect[i] = std::to_string(statVect[i]);
