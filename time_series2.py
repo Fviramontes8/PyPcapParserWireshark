@@ -71,6 +71,8 @@ def avg_sample(sample_arr, sample_size):
 
 def grab_n(array, length):
     return np.atleast_1d([array[i] for i in range(length)]).T
+def grab_nz(array, n ,z):
+    return np.atleast_1d([array[i] for i in range(n, z)]).T
 
 #Main:
 timestamps = []
@@ -125,8 +127,11 @@ print "Average number of users: " + str(int(mean(nou)))
 print "Standard deviation: " + str(int(np.sqrt(sample_var(nou, mean(nou)))))
 
 #Trying grabbing the first ten to predict 11th
-n = 5000
+n = 10
+print n
 nou10 = grab_n(nou, n)
+nounz = grab_nz(nou, 0, 10)
+print "nou10:", nou10, "\nnounz:", nounz
 #sub_sample(nou, 3600)
 #avg_sample(nou, 3600)
 bits10 = grab_n(bits, n)
@@ -158,7 +163,7 @@ X = np.atleast_2d([[i for i in range(nu)]]).T
 x =  np.atleast_2d([[i for i in range(nu, nu + 1)]]).T
 
 
-kernel = RBF(length_scale=1, length_scale_bounds=(2e-1, 2))
+kernel = RBF(length_scale=2, length_scale_bounds=(2e-1, 2))
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,\
                               normalize_y=True)
 #print X
@@ -181,7 +186,9 @@ print "Predicted:", [int(y_p1[0][0]), int(y_p1[0][1]), int(y_p1[0][2]),\
 
 print "Real:\t", [nou[nu], bits[nu], pktNum[nu], sigS[nu], dataRate[nu],\
                 phyB[nu], phyG[nu], phyN[nu]]
-
+###############################################################################
+#Move the window yo
+###############################################################################
 '''
 print (y_p.T)
 
