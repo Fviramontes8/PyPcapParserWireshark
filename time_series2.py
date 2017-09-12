@@ -127,68 +127,70 @@ print "Average number of users: " + str(int(mean(nou)))
 print "Standard deviation: " + str(int(np.sqrt(sample_var(nou, mean(nou)))))
 
 #Trying grabbing the first ten to predict 11th
+m = 0
 n = 10
-print n
-nou10 = grab_n(nou, n)
-nounz = grab_nz(nou, 0, 10)
-print "nou10:", nou10, "\nnounz:", nounz
-#sub_sample(nou, 3600)
-#avg_sample(nou, 3600)
-bits10 = grab_n(bits, n)
-#sub_sample(bits, 3600)
-#avg_sample(bits, 3600)
-pktN10 = grab_n(pktNum, n)
-#sub_sample(pktNum, 3600)
-#avg_sample(pktNum, 3600)
-sigS10 = grab_n(sigS, n)
-#sub_sample(sigS, 3600)
-#avg_sample(sigS, 3600)
-dR10 = grab_n(dataRate, n)
-#sub_sample(dataRate, 3600)
-#avg_sample(dataRate, 3600)
-pB10 = grab_n(phyB, n)
-#sub_sample(phyB, 3600)
-#avg_sample(phyB, 3600)
-pG10 = grab_n(phyG, n)
-#sub_sample(phyG, 3600)
-#avg_sample(phyG, 3600)
-pN10 = grab_n(phyN, n)
-#sub_sample(phyN, 3600) 
-#avg_sample(phyN, 3600)
+while n < 20:
+    print m+1
+    samp_Nou = grab_nz(nou, m, n)
+    #sub_sample(nou, 3600)
+    #avg_sample(nou, 3600)
+    samp_Bits = grab_nz(bits, m, n)
+    #sub_sample(bits, 3600)
+    #avg_sample(bits, 3600)
+    samp_Pkts = grab_nz(pktNum, m, n)
+    #sub_sample(pktNum, 3600)
+    #avg_sample(pktNum, 3600)
+    samp_sigS = grab_nz(sigS, m, n)
+    #sub_sample(sigS, 3600)
+    #avg_sample(sigS, 3600)
+    samp_dR = grab_nz(dataRate, m, n)
+    #sub_sample(dataRate, 3600)
+    #avg_sample(dataRate, 3600)
+    samp_pB = grab_nz(phyB, m, n)
+    #sub_sample(phyB, 3600)
+    #avg_sample(phyB, 3600)
+    samp_pG = grab_nz(phyG, m, n)
+    #sub_sample(phyG, 3600)
+    #avg_sample(phyG, 3600)
+    samp_pN = grab_nz(phyN, m, n)
+    #sub_sample(phyN, 3600) 
+    #avg_sample(phyN, 3600)
+    
+    y = np.atleast_2d([samp_Nou, samp_Bits, samp_Pkts, samp_sigS, samp_dR,\
+                       samp_pB, samp_pG, samp_pN]).T
+    nu = y.shape[0]
+    
+    X = np.atleast_2d([[i for i in range(nu)]]).T
+    x =  np.atleast_2d([[i for i in range(nu, nu + 1)]]).T
+    
+    
+    kernel = RBF(length_scale=1, length_scale_bounds=(1e-1, 1e1))
+    gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,\
+                                  normalize_y=True)
+    #print X
+    #print y
+    gp.fit(X, y)
+    
+    print "Marginal likelihood:", gp.log_marginal_likelihood()
+    
+    #print x
+    y_p = gp.predict(X)
+    #print y_p
+    
+    y_p1, sigma_p1 = gp.predict(x, return_std=True)
+    print "Means:\t\t", [int(mean(samp_Nou)), int(mean(samp_Bits)),\
+                       int(mean(samp_Pkts)), int(mean(samp_sigS)),\
+                       int(mean(samp_dR)), int(mean(samp_pB)),\
+                       int(mean(samp_pG)), int(mean(samp_pN))]
+    print "Predicted:\t", [int(y_p1[0][0]), int(y_p1[0][1]), int(y_p1[0][2]),\
+                          int(y_p1[0][3]), int(y_p1[0][4]), int(y_p1[0][5]),\
+                          int(y_p1[0][6]), int(y_p1[0][7])]
+    
+    print "Real:\t\t", [nou[nu+m], bits[nu+m], pktNum[nu+m], sigS[nu+m],\
+                      dataRate[nu+m], phyB[nu+m], phyG[nu+m], phyN[nu+m]], "\n"
+    m += 1
+    n += 1
 
-y = np.atleast_2d([nou10, bits10, pktN10, sigS10, dR10, pB10, pG10, pN10]).T
-nu = y.shape[0]
-
-X = np.atleast_2d([[i for i in range(nu)]]).T
-x =  np.atleast_2d([[i for i in range(nu, nu + 1)]]).T
-
-
-kernel = RBF(length_scale=2, length_scale_bounds=(2e-1, 2))
-gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,\
-                              normalize_y=True)
-#print X
-#print y
-gp.fit(X, y)
-
-print ("Marginal likelihood: ", gp.log_marginal_likelihood())
-
-#print x
-y_p = gp.predict(X)
-#print y_p
-
-y_p1, sigma_p1 = gp.predict(x, return_std=True)
-print "Means:\t", [int(mean(nou10)), int(mean(bits10)), int(mean(pktN10)),\
-                 int(mean(sigS10)), int(mean(dR10)), int(mean(pB10)),\
-                 int(mean(pG10)), int(mean(pN10))]
-print "Predicted:", [int(y_p1[0][0]), int(y_p1[0][1]), int(y_p1[0][2]),\
-                      int(y_p1[0][3]), int(y_p1[0][4]), int(y_p1[0][5]),\
-                      int(y_p1[0][6]), int(y_p1[0][7])]
-
-print "Real:\t", [nou[nu], bits[nu], pktNum[nu], sigS[nu], dataRate[nu],\
-                phyB[nu], phyG[nu], phyN[nu]]
-###############################################################################
-#Move the window yo
-###############################################################################
 '''
 print (y_p.T)
 
