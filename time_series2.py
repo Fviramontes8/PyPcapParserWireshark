@@ -80,6 +80,7 @@ timestamps = []
 nou = []
 nou_tst = []
 bits = []
+bits_tst = []
 pktNum = []
 sigS = []
 dataRate = []
@@ -110,6 +111,7 @@ for k in sorted(train, key=lambda hello: hello[0]):
     phyN.append(int(k[9]))
 for l in sorted(test, key=lambda yello: yello[0]):
     nou_tst.append(int(l[2]))
+    bits_tst.append(int(l[2]))
 '''  
 human_time = []
 for u in timestamps:
@@ -128,77 +130,97 @@ plt.ylabel("Number of users")
 plt.xlabel("Timestamp")
 plt.show()
 '''
-print "Average number of users: " + str(int(mean(nou)))
-print "Standard deviation: " + str(int(np.sqrt(sample_var(nou, mean(nou)))))
+#print "Average number of users: " + str(int(mean(nou)))
+#print "Standard deviation: " + str(int(np.sqrt(sample_var(nou, mean(nou)))))
 
 #
+p = 0
+#300 is cool, 400, 450, 500 is ok
+#q = 750
 
 #samp_ts = sub_sample(timestamps, 3600)
-samp_Nou = avg_sample(nou, 3600)
-samp_nou_tst = avg_sample(nou_tst, 3600)
+samp_Nou = avg_sample(nou, 60)
+q = len(samp_Nou)
+#grab_nz(nou_tst, p, r)
 #sub_sample(nou, 3600)
-#grab_nz(nou, m, n)
-samp_Bits = avg_sample(bits, 3600)
+samp_Bits = avg_sample(bits, 60)
 #sub_sample(bits, 3600)
 #grab_nz(bits, m, n)
-samp_Pkts = avg_sample(pktNum, 3600)
+samp_Pkts = avg_sample(pktNum, 60)
 #sub_sample(pktNum, 3600)
 #grab_nz(pktNum, m, n)
-samp_sigS = avg_sample(sigS, 3600)
+samp_sigS = avg_sample(sigS, 60)
 #sub_sample(sigS, 3600)
 #grab_nz(sigS, m, n)
-samp_dR = avg_sample(dataRate, 3600)
+samp_dR = avg_sample(dataRate, 60)
 #sub_sample(dataRate, 3600)
 #grab_nz(dataRate, m, n)
-samp_pB = avg_sample(phyB, 3600)
+samp_pB = avg_sample(phyB, 60)
 #sub_sample(phyB, 3600)
 #grab_nz(phyB, m, n)
-samp_pG = avg_sample(phyG, 3600)
+samp_pG = avg_sample(phyG, 60)
 #sub_sample(phyG, 3600)
 #grab_nz(phyG, m, n)
-samp_pN = avg_sample(phyN, 3600)
+samp_pN = avg_sample(phyN, 60)
 #sub_sample(phyN, 3600) 
 #grab_nz(phyN, m, n)
 
+#Preparation of subsampling test data
+samp_nou_tst = avg_sample(nou_tst, 60)
+samp_bits_tst = avg_sample(bits_tst, 60)
+r = 100
+
+samp_nou_tst1 = grab_nz(samp_nou_tst, p, r)
+samp_bits_tst1 = grab_nz(samp_bits_tst, p, r)
+
 #y = np.atleast_2d([samp_Nou, samp_Bits, samp_Pkts, samp_sigS, samp_dR,\
                    #samp_pB, samp_pG, samp_pN]).T
-#nu = y.shape[0]
-print samp_Nou
-print samp_nou_tst
-D = 10 #Window size
+D = 5 #Window size
+noutr = np.atleast_2d([grab_nz(samp_Nou, m, n) for m, n in zip(range(samp_Nou.shape[0]), range(D,samp_Nou.shape[0]))])
+bitstr = np.atleast_2d([grab_nz(samp_Bits, m, n) for m, n in zip(range(samp_Bits.shape[0]), range(D,samp_Bits.shape[0]))])
+Xtr = np.atleast_2d(noutr, bitstr) #Training
+print "Xtr:\n", Xtr
+'''
+nou_ob = np.atleast_2d([[samp_Nou[i] for i in range(D, samp_Nou.shape[0])]])
+bits_ob = np.atleast_2d([[samp_Bits[i] for i in range(D, samp_Bits.shape[0])]])
+ytr = np.atleast_2d(nou_ob, bits_ob).T #Observations
+print "ytr:\n", ytr
 
-Xtr = np.atleast_2d([grab_nz(samp_Nou, m, n) for m, n in zip(range(D+1), range(D,samp_Nou.shape[0]))]) #Training
-print Xtr
-ytr = np.atleast_2d([[samp_Nou[i] for i in range(D,samp_Nou.shape[0])]]).T #Observations
-print ytr
-
-xtst =  np.atleast_2d([grab_nz(samp_nou_tst, m, n) for m, n in zip(range(D+1), range(D,samp_nou_tst.shape[0]))]) #Test
-print xtst
-ytst = np.atleast_2d([samp_nou_tst[i] for i in range(D,samp_nou_tst.shape[0])]).T
-print ytst.T[0]
+xtst =  np.atleast_2d([grab_nz(samp_nou_tst1, m, n) for m, n in zip(range(samp_nou_tst1.shape[0]), range(D,samp_nou_tst1.shape[0]))]) #Test
+#print "xtst:\n", xtst
+ycompare = np.atleast_2d([samp_Nou[i] for i in range(D,samp_nou_tst1.shape[0])]).T
+ytst = np.atleast_2d([samp_nou_tst[i] for i in range(D,samp_nou_tst1.shape[0])]).T
+#print "ytst:\n", ytst.T[0]
 #Column features, rows samples
 
-kernel = RBF(length_scale=1, length_scale_bounds=(1e-1, 1e1))
-#linear_kernel(X, y)
+kernel = RBF(length_scale=1)
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,\
-                              normalize_y=True)
+                              normalize_y=True, alpha=1e-8)
 
 gp.fit(Xtr, ytr)
 
 print "Marginal likelihood:", gp.log_marginal_likelihood()
 
 y_p = gp.predict(xtst)
-print y_p.T[0]
+#print y_p.T[0]
 
-tues_hrs = [i+1 for i in range(D, samp_nou_tst.shape[0])]
-print tues_hrs
+tues_hrs = [i+1 for i in range(D, samp_nou_tst1.shape[0])]
+#print tues_hrs
+#print tues_hrs[-1] - tues_hrs[0]
 
-plt.xlabel("Time of day (hrs)")
+s = "Time interval between "+str(tues_hrs[0])+" and "+str(tues_hrs[-1])+\
+"\n Window is "+str(D)
+plt.xlabel(s=s)
+#plt.text(35, 11, "Hello")
 plt.ylabel("Number of Users")
-plt.plot(tues_hrs, (y_p.T)[0], "g-", label="Predicted")
+o = "Using RBF Kernel with "+str(q)+" averaged training samples\nand "+str(r)+\
+" averaged test samples"
+plt.title(s=o)
+plt.plot(tues_hrs, y_p.T[0], "g-", label="Predicted")
 plt.plot(tues_hrs, ytst.T[0], "m-", label="Real")
 plt.legend()
 plt.show()
+'''
 '''
 y_p1, sigma_p1 = gp.predict(x, return_std=True)
 
