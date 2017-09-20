@@ -111,7 +111,7 @@ for k in sorted(train, key=lambda hello: hello[0]):
     phyN.append(int(k[9]))
 for l in sorted(test, key=lambda yello: yello[0]):
     nou_tst.append(int(l[2]))
-    bits_tst.append(int(l[2]))
+    bits_tst.append(int(l[3]))
 '''  
 human_time = []
 for u in timestamps:
@@ -176,20 +176,26 @@ samp_bits_tst1 = grab_nz(samp_bits_tst, p, r)
 #y = np.atleast_2d([samp_Nou, samp_Bits, samp_Pkts, samp_sigS, samp_dR,\
                    #samp_pB, samp_pG, samp_pN]).T
 D = 5 #Window size
-noutr = np.atleast_2d([grab_nz(samp_Nou, m, n) for m, n in zip(range(samp_Nou.shape[0]), range(D,samp_Nou.shape[0]))])
+#noutr = np.atleast_2d([grab_nz(samp_Nou, m, n) for m, n in zip(range(samp_Nou.shape[0]), range(D,samp_Nou.shape[0]))])
 bitstr = np.atleast_2d([grab_nz(samp_Bits, m, n) for m, n in zip(range(samp_Bits.shape[0]), range(D,samp_Bits.shape[0]))])
-Xtr = np.atleast_2d(noutr, bitstr) #Training
-print "Xtr:\n", Xtr
-'''
-nou_ob = np.atleast_2d([[samp_Nou[i] for i in range(D, samp_Nou.shape[0])]])
-bits_ob = np.atleast_2d([[samp_Bits[i] for i in range(D, samp_Bits.shape[0])]])
-ytr = np.atleast_2d(nou_ob, bits_ob).T #Observations
-print "ytr:\n", ytr
+#print noutr[0]
+Xtr = np.atleast_2d(bitstr) #Training
+#print "Xtr:\n", Xtr
 
-xtst =  np.atleast_2d([grab_nz(samp_nou_tst1, m, n) for m, n in zip(range(samp_nou_tst1.shape[0]), range(D,samp_nou_tst1.shape[0]))]) #Test
+#nou_ob = np.atleast_2d([[samp_Nou[i] for i in range(D, samp_Nou.shape[0])]])
+bits_ob = np.atleast_2d([[samp_Bits[i] for i in range(D, samp_Bits.shape[0])]])
+ytr = np.atleast_2d(bits_ob).T #Observations
+#print "ytr:\n", ytr
+#nou_tst1 = [grab_nz(samp_nou_tst1, m, n) for m, n in zip(range(samp_nou_tst1.shape[0]), range(D,samp_nou_tst1.shape[0]))]
+bits_tst1 = [grab_nz(samp_bits_tst1, m, n) for m, n in zip(range(samp_bits_tst1.shape[0]), range(D, samp_bits_tst1.shape[0]))]
+xtst =  np.atleast_2d(bits_tst1) #Test
 #print "xtst:\n", xtst
-ycompare = np.atleast_2d([samp_Nou[i] for i in range(D,samp_nou_tst1.shape[0])]).T
-ytst = np.atleast_2d([samp_nou_tst[i] for i in range(D,samp_nou_tst1.shape[0])]).T
+#nou_comp = [samp_Nou[i] for i in range(D,samp_nou_tst1.shape[0])]
+bits_comp = [samp_Bits[i] for i in range(D, samp_bits_tst1.shape[0])]
+ycompare = np.atleast_2d(bits_comp).T
+#nou_ytst = [samp_nou_tst[i] for i in range(D,samp_nou_tst1.shape[0])]
+bits_ytst = [samp_bits_tst[i] for i in range(D, samp_bits_tst1.shape[0])]
+ytst = np.atleast_2d(bits_ytst).T
 #print "ytst:\n", ytst.T[0]
 #Column features, rows samples
 
@@ -202,49 +208,21 @@ gp.fit(Xtr, ytr)
 print "Marginal likelihood:", gp.log_marginal_likelihood()
 
 y_p = gp.predict(xtst)
-#print y_p.T[0]
+print y_p.T[0]
 
-tues_hrs = [i+1 for i in range(D, samp_nou_tst1.shape[0])]
-#print tues_hrs
-#print tues_hrs[-1] - tues_hrs[0]
+result_time = [i+1 for i in range(D, samp_nou_tst1.shape[0])]
+#print result_time
+#print result_time[-1] - result_time[0]
 
-s = "Time interval between "+str(tues_hrs[0])+" and "+str(tues_hrs[-1])+\
-"\n Window is "+str(D)
+s = "Time interval between "+str(result_time[0])+" and "+str(result_time[-1])+\
+"minutes\n Window is "+str(D)
 plt.xlabel(s=s)
 #plt.text(35, 11, "Hello")
-plt.ylabel("Number of Users")
+plt.ylabel("Bits")
 o = "Using RBF Kernel with "+str(q)+" averaged training samples\nand "+str(r)+\
 " averaged test samples"
 plt.title(s=o)
-plt.plot(tues_hrs, y_p.T[0], "g-", label="Predicted")
-plt.plot(tues_hrs, ytst.T[0], "m-", label="Real")
+plt.plot(result_time, y_p.T[0], "g-", label="Predicted")
+plt.plot(result_time, ytst.T[0], "m-", label="Real")
 plt.legend()
 plt.show()
-'''
-'''
-y_p1, sigma_p1 = gp.predict(x, return_std=True)
-
-print "Means:\t\t", [int(mean(samp_Nou)), int(mean(samp_Bits)),\
-                   int(mean(samp_Pkts)), int(mean(samp_sigS)),\
-                   int(mean(samp_dR)), int(mean(samp_pB)),\
-                   int(mean(samp_pG)), int(mean(samp_pN))]
-print "Predicted:\t", [int(y_p1[0][0]), int(y_p1[0][1]), int(y_p1[0][2]),\
-                      int(y_p1[0][3]), int(y_p1[0][4]), int(y_p1[0][5]),\
-                      int(y_p1[0][6]), int(y_p1[0][7])]
-
-print "Real:\t\t", [nou[nu+m], bits[nu+m], pktNum[nu+m], sigS[nu+m],\
-                  dataRate[nu+m], phyB[nu+m], phyG[nu+m], phyN[nu+m]], "\n"
-
-'''
-'''
-print (y_p.T)
-
-plt.plot(nou10, "k-")
-plt.show()
-plt.plot((y_p)[0], "m-")
-plt.show()
-plt.plot(x, y_p1, "c-.")
-plt.xlabel('$x$')
-plt.ylabel('$y$')
-plt.show()
-'''
