@@ -12,8 +12,9 @@ np.set_printoptions(threshold=np.nan)
 import matplotlib.pyplot as plt
 #from random import seed
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF
-from sklearn.metrics.pairwise import linear_kernel
+from sklearn.gaussian_process.kernels import DotProduct as LK, ConstantKernel as CK, Sum
+#sig_b**2 + (sig_v**2)*(x-c)(xprime-c)
+#from sklearn.metrics.pairwise import linear_kernel
 #, ConstantKernel as CK
 #, Matern
 #from sklearn.gaussian_process.kernels import RationalQuadratic as RQ, ExpSineSquared as ESS 
@@ -74,7 +75,31 @@ def grab_n(array, length):
     return np.atleast_1d([array[i] for i in range(length)]).T
 def grab_nz(array, n ,z):
     return np.atleast_1d([array[i] for i in range(n, z)]).T
-
+#(nou, nou_tst, 60, 0, 100, 15)
+def GP_prep(train, test, avg_samp, sub_samp_begin, sub_samp_end, window):
+    samp_train = avg_sample(train, avg_samp) #samp_nou
+    tot_samp = len(samp_train)
+    #noutr = np.atleast_2d([grab_nz(samp_nou, m, n) for m, n in zip(range(samp_nou.shape[0]), range(D,samp_nou.shape[0]))])
+    tr = np.atleast_2d([grab_nz(samp_train, m, n) for m, n in zip(range(samp_train.shape[0]), range(window, samp_train.shape[0]))])
+    Xtr = np.atleast_2d(tr)
+    #nou_ob = np.atleast_2d([[samp_nou[i] for i in range(D, samp_nou.shape[0])]])
+    ob = np.atleast_2d([[samp_train[i] for i in range(window, samp_train.shape[0])]])
+    Ytr = np.atleast_2d(ob).T 
+    #samp_nou_tst = avg_sample(nou_tst, 60)
+    samp_test = avg_sample(test, avg_samp) 
+    #samp_nou_tst1 = grab_nz(samp_nou_tst, p, r)
+    samp_test1 = grab_nz(samp_test, sub_samp_begin, sub_samp_end) 
+    ##nou_tst1 = [grab_nz(samp_nou_tst1, m, n) for m, n in zip(range(samp_nou_tst1.shape[0]), range(D,samp_nou_tst1.shape[0]))]
+    feat_xtest = [grab_nz(samp_test1, m, n) for m, n in zip(range(samp_test1.shape[0]), range(window, samp_test1.shape[0]))]
+    xtst =  np.atleast_2d(feat_xtest)
+    #nou_comp = [samp_nou[i] for i in range(D,samp_nou_tst1.shape[0])]
+    feat_comp = [samp_train[i] for i in range(window, samp_test1.shape[0])]
+    ycomp = np.atleast_2d(feat_comp).T
+    #nou_ytst = [samp_nou_tst[i] for i in range(D,samp_nou_tst1.shape[0])]
+    feat_ytest = [samp_test[i] for i in range(window, samp_test1.shape[0])]
+    ytst = np.atleast_2d(feat_ytest).T
+    return tot_samp, Xtr, Ytr, xtst, ycomp, ytst
+    
 #Main:
 timestamps = []
 nou = []
@@ -82,11 +107,17 @@ nou_tst = []
 bits = []
 bits_tst = []
 pktNum = []
+pkt_tst = []
 sigS = []
+sigS_tst = []
 dataRate = []
+dR_tst = []
 phyB = []
+b_tst = []
 phyG = []
+g_tst = []
 phyN = []
+n_tst = []
 
 db = dc.DatabaseConnect()
 db.connect()
@@ -112,6 +143,12 @@ for k in sorted(train, key=lambda hello: hello[0]):
 for l in sorted(test, key=lambda yello: yello[0]):
     nou_tst.append(int(l[2]))
     bits_tst.append(int(l[3]))
+    pkt_tst.append(int(l[4]))
+    sigS_tst.append(int(l[5]))
+    dR_tst.append(int(l[6]))
+    b_tst.append(int(l[7]))
+    g_tst.append(int(l[8]))
+    n_tst.append(int(l[9]))
 '''  
 human_time = []
 for u in timestamps:
@@ -133,73 +170,50 @@ plt.show()
 #print "Average number of users: " + str(int(mean(nou)))
 #print "Standard deviation: " + str(int(np.sqrt(sample_var(nou, mean(nou)))))
 
-#
-p = 0
-#300 is cool, 400, 450, 500 is ok
-#q = 750
-
-#samp_ts = sub_sample(timestamps, 3600)
-samp_Nou = avg_sample(nou, 60)
-q = len(samp_Nou)
-#grab_nz(nou_tst, p, r)
-#sub_sample(nou, 3600)
-samp_Bits = avg_sample(bits, 60)
-#sub_sample(bits, 3600)
-#grab_nz(bits, m, n)
-samp_Pkts = avg_sample(pktNum, 60)
-#sub_sample(pktNum, 3600)
-#grab_nz(pktNum, m, n)
-samp_sigS = avg_sample(sigS, 60)
-#sub_sample(sigS, 3600)
-#grab_nz(sigS, m, n)
-samp_dR = avg_sample(dataRate, 60)
-#sub_sample(dataRate, 3600)
-#grab_nz(dataRate, m, n)
-samp_pB = avg_sample(phyB, 60)
-#sub_sample(phyB, 3600)
-#grab_nz(phyB, m, n)
-samp_pG = avg_sample(phyG, 60)
-#sub_sample(phyG, 3600)
-#grab_nz(phyG, m, n)
-samp_pN = avg_sample(phyN, 60)
-#sub_sample(phyN, 3600) 
-#grab_nz(phyN, m, n)
+samp_nou = avg_sample(nou, 60)
+q = len(samp_nou)
 
 #Preparation of subsampling test data
 samp_nou_tst = avg_sample(nou_tst, 60)
-samp_bits_tst = avg_sample(bits_tst, 60)
+#Number of test samples
+p = 0
 r = 100
-
+#Subsampling features
 samp_nou_tst1 = grab_nz(samp_nou_tst, p, r)
-samp_bits_tst1 = grab_nz(samp_bits_tst, p, r)
 
-#y = np.atleast_2d([samp_Nou, samp_Bits, samp_Pkts, samp_sigS, samp_dR,\
-                   #samp_pB, samp_pG, samp_pN]).T
-D = 5 #Window size
-#noutr = np.atleast_2d([grab_nz(samp_Nou, m, n) for m, n in zip(range(samp_Nou.shape[0]), range(D,samp_Nou.shape[0]))])
-bitstr = np.atleast_2d([grab_nz(samp_Bits, m, n) for m, n in zip(range(samp_Bits.shape[0]), range(D,samp_Bits.shape[0]))])
-#print noutr[0]
-Xtr = np.atleast_2d(bitstr) #Training
-#print "Xtr:\n", Xtr
+#Window size
+D = 15
 
-#nou_ob = np.atleast_2d([[samp_Nou[i] for i in range(D, samp_Nou.shape[0])]])
-bits_ob = np.atleast_2d([[samp_Bits[i] for i in range(D, samp_Bits.shape[0])]])
-ytr = np.atleast_2d(bits_ob).T #Observations
-#print "ytr:\n", ytr
-#nou_tst1 = [grab_nz(samp_nou_tst1, m, n) for m, n in zip(range(samp_nou_tst1.shape[0]), range(D,samp_nou_tst1.shape[0]))]
-bits_tst1 = [grab_nz(samp_bits_tst1, m, n) for m, n in zip(range(samp_bits_tst1.shape[0]), range(D, samp_bits_tst1.shape[0]))]
-xtst =  np.atleast_2d(bits_tst1) #Test
-#print "xtst:\n", xtst
-#nou_comp = [samp_Nou[i] for i in range(D,samp_nou_tst1.shape[0])]
-bits_comp = [samp_Bits[i] for i in range(D, samp_bits_tst1.shape[0])]
-ycompare = np.atleast_2d(bits_comp).T
-#nou_ytst = [samp_nou_tst[i] for i in range(D,samp_nou_tst1.shape[0])]
-bits_ytst = [samp_bits_tst[i] for i in range(D, samp_bits_tst1.shape[0])]
-ytst = np.atleast_2d(bits_ytst).T
-#print "ytst:\n", ytst.T[0]
 #Column features, rows samples
+#Training samples
+noutr = np.atleast_2d([grab_nz(samp_nou, m, n) for m, n in zip(range(samp_nou.shape[0]), range(D,samp_nou.shape[0]))])
+Xtr = np.atleast_2d(noutr) #Training
+#print "Xtr:\n", Xtr
+print len(Xtr)
 
-kernel = RBF(length_scale=1)
+#Training Observations
+nou_ob = np.atleast_2d([[samp_nou[i] for i in range(D, samp_nou.shape[0])]])
+ytr = np.atleast_2d(nou_ob).T 
+#print "ytr:\n", ytr
+
+#Test samples
+nou_tst1 = [grab_nz(samp_nou_tst1, m, n) for m, n in zip(range(samp_nou_tst1.shape[0]), range(D,samp_nou_tst1.shape[0]))]
+xtst =  np.atleast_2d(nou_tst1) 
+#print "xtst:\n", xtst
+
+#Comparison
+nou_comp = [samp_nou[i] for i in range(D,samp_nou_tst1.shape[0])]
+ycompare = np.atleast_2d(nou_comp).T
+
+#Test Observations
+nou_ytst = [samp_nou_tst[i] for i in range(D,samp_nou_tst1.shape[0])]
+ytst = np.atleast_2d(nou_ytst).T
+#print "ytst:\n", ytst.T[0]
+
+
+kernel1 = LK(sigma_0 = 1, sigma_0_bounds = (1e-1, 1e1))
+kernel2 = CK(constant_value=1.0)
+kernel = Sum(kernel1, kernel2)
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,\
                               normalize_y=True, alpha=1e-8)
 
@@ -207,22 +221,33 @@ gp.fit(Xtr, ytr)
 
 print "Marginal likelihood:", gp.log_marginal_likelihood()
 
-y_p = gp.predict(xtst)
-print y_p.T[0]
+Xtr_1 = [Xtr[i] for i in range(xtst.shape[0])]
+
+y_p, y_sig = gp.predict(Xtr_1, return_std=True)
+#print y_p.T[0]
+#print y_sig
 
 result_time = [i+1 for i in range(D, samp_nou_tst1.shape[0])]
-#print result_time
-#print result_time[-1] - result_time[0]
 
+#Axes and graph titling 
 s = "Time interval between "+str(result_time[0])+" and "+str(result_time[-1])+\
-"minutes\n Window is "+str(D)
+" minutes\n Window is "+str(D)
 plt.xlabel(s=s)
-#plt.text(35, 11, "Hello")
-plt.ylabel("Bits")
+yLab = "Number of packets"
+plt.ylabel(yLab)
 o = "Using RBF Kernel with "+str(q)+" averaged training samples\nand "+str(r)+\
 " averaged test samples"
 plt.title(s=o)
+
+#Ploting data
+plt.plot(result_time, ycompare, "y-", label="Training")
 plt.plot(result_time, y_p.T[0], "g-", label="Predicted")
-plt.plot(result_time, ytst.T[0], "m-", label="Real")
+#plt.plot(result_time, ytst.T[0], "m-", label="Real")
+plt.fill(np.concatenate([result_time, result_time[::-1]]),
+         np.concatenate([y_p-1.96*y_sig,
+                        (y_p+1.96*y_sig)[::-1]]),
+         alpha=.5, fc='b', ec='None')
 plt.legend()
 plt.show()
+
+total_samp, Xtr, Ytr, Xtst, Ycomp, Ytst = GP_prep(nou, nou_tst, 60, p, r, D)
