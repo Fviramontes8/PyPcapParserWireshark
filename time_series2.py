@@ -170,6 +170,11 @@ plt.show()
 #print "Average number of users: " + str(int(mean(nou)))
 #print "Standard deviation: " + str(int(np.sqrt(sample_var(nou, mean(nou)))))
 
+training_data=[nou, bits, pktNum, sigS, dataRate, phyB, phyG, phyN]
+test_data = [nou_tst, bits_tst, pkt_tst, sigS_tst, dR_tst, b_tst, g_tst, n_tst]
+labels = {"nou" : "Number of users", "bits" : "Bits", "pktNum": "Number of Packets",\
+          "sigS": "Signal Strength", "dataRate": "Data Rate(MB)", "phyB": "802.11b bits",\
+          "phyG": "802.11g bits", "phyN": "802.11n bits"}
 samp_nou = avg_sample(nou, 60)
 q = len(samp_nou)
 
@@ -215,7 +220,7 @@ kernel1 = LK(sigma_0 = 1, sigma_0_bounds = (1e-1, 1e1))
 kernel2 = CK(constant_value=1.0)
 kernel = Sum(kernel1, kernel2)
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,\
-                              normalize_y=True, alpha=1e-8)
+                              normalize_y=True, alpha=1e-6)
 
 gp.fit(Xtr, ytr)
 
@@ -251,3 +256,26 @@ plt.legend()
 plt.show()
 
 total_samp, Xtr, Ytr, Xtst, Ycomp, Ytst = GP_prep(nou, nou_tst, 60, p, r, D)
+
+gp.fit(Xtr, Ytr)
+y_pred, y_sigma = gp.predict(Xtst, return_std=True)
+
+s = "Time interval between "+str(result_time[0])+" and "+str(result_time[-1])+\
+" minutes\n Window is "+str(D)
+plt.xlabel(s=s)
+yLab = "Number of users"
+plt.ylabel(yLab)
+o = "Using RBF Kernel with "+str(q)+" averaged training samples\nand "+str(r)+\
+" averaged test samples"
+plt.title(s=o)
+
+#Ploting data
+plt.plot(result_time, Ycomp, "y-", label="Training")
+plt.plot(result_time, y_pred.T[0], "g-", label="Predicted")
+#plt.plot(result_time, ytst.T[0], "m-", label="Real")
+plt.fill(np.concatenate([result_time, result_time[::-1]]),
+         np.concatenate([y_pred-1.96*y_sigma,
+                        (y_pred+1.96*y_sigma)[::-1]]),
+         alpha=.5, fc='b', ec='None')
+plt.legend()
+plt.show()
