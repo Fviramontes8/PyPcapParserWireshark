@@ -182,7 +182,7 @@ D = 15
 
 kernel1 = LK(sigma_0 = 1, sigma_0_bounds = (1e-1, 1e1))
 kernel2 = CK(constant_value=1)
-kernel3 = WK(1)
+kernel3 = WK(10)
 kernel = Sum(kernel1, kernel2)
 kernel = Sum(kernel, kernel3)
 #1e-1 for linear + constant, 1e-3 for RBF
