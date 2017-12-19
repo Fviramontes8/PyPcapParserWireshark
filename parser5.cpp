@@ -21,7 +21,7 @@ using namespace Tins;
 
 int main(int argc, char* argv[]) {
 	//Opening connection with database
-	DatabaseConnect db("postgres", "129.24.26.137", "postgres", "Cerculsihr4T");
+	DatabaseConnect db("postgres", "129.24.26.14", "postgres", "Cerculsihr4T");
 	db.connect();
 	
 	//Declaring table name to write to
@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
 	usleep(100000);
 	
 	while(loopbreak) {
-		std::cout << "Is this a loop?" << std::endl;
+		//std::cout << "Is this a loop?" << std::endl;
 		for(boost::filesystem::directory_iterator i(path); i != end_itr; i++) {
 			//Counting the number of packets that have been parsed
 			int pktCount;

@@ -193,6 +193,7 @@ print gp.get_params()['kernel']
 for z in range(len(labels)): #len(labels)
     total_samp, Xtr, Ytr, Xtst, Ycomp, Ytst = GP_prep(training_data[z], test_data[z], 60, p, r, D)
     
+    print(Xtr.shape, Ytr.shape, Xtst.shape, Ytst.shape)
     #Testing if it overfits
     Xtr_1 = [Xtr[i] for i in range(D, r)]
     
@@ -201,6 +202,8 @@ for z in range(len(labels)): #len(labels)
         gp.fit(Xtr, Ytr)
         print "marginal likelihood:", gp.log_marginal_likelihood()
         y_pred, y_sigma = gp.predict(Xtst, return_std=True)
+        print(y_pred.shape)
+        
         result_time = [g+1 for g in range(D, r)]
         
         s = "time interval between "+str(result_time[0])+" and "+str(result_time[-1])+\
@@ -223,6 +226,7 @@ for z in range(len(labels)): #len(labels)
                  alpha=.5, fc='b', ec='none')
         plt.legend()
         plt.show()
+        
     except:
         print "Feature "+str(labels[z])+" did not work!"
         continue
