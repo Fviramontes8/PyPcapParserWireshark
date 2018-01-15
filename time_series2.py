@@ -147,24 +147,13 @@ for l in sorted(test, key=lambda yello: yello[0]):
     b_tst.append(int(l[7]))
     g_tst.append(int(l[8]))
     n_tst.append(int(l[9]))
-'''  
-human_time = []
-for u in timestamps:
-    human_time.append((time.localtime(u).tm_hour * 10000) + \
-                     (time.localtime(u).tm_min * 100) + time.localtime(u).tm_sec)
 
-print len(nou)
-
-plt.plot(human_time, nou, "r-")
-plt.ylabel("Number of users")
-plt.xlabel("Timestamp")
-plt.show()
 
 plt.plot(timestamps, nou, "r-")
 plt.ylabel("Number of users")
 plt.xlabel("Timestamp")
 plt.show()
-'''
+
 #print "Average number of users: " + str(int(mean(nou)))
 #print "Standard deviation: " + str(int(np.sqrt(sample_var(nou, mean(nou)))))
 
@@ -182,13 +171,13 @@ D = 15
 
 kernel1 = LK(sigma_0 = 1, sigma_0_bounds = (1e-1, 1e1))
 kernel2 = CK(constant_value=1)
-kernel3 = WK(10)
+kernel3 = WK(0.1)
 kernel = Sum(kernel1, kernel2)
 kernel = Sum(kernel, kernel3)
 #1e-1 for linear + constant, 1e-3 for RBF
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,\
                               normalize_y=False, alpha=1e-1)
-print gp.get_params()['kernel']
+#print gp.get_params()['kernel']
 
 for z in range(len(labels)): #len(labels)
     total_samp, Xtr, Ytr, Xtst, Ycomp, Ytst = GP_prep(training_data[z], test_data[z], 60, p, r, D)
@@ -214,7 +203,7 @@ for z in range(len(labels)): #len(labels)
         
         #ploting data
         #plt.plot(result_time, y_sample_yo, "c-", label= "kernel sample")
-        #plt.plot(result_time, ycomp, "y-", label="training")
+        plt.plot(result_time, Ycomp, "y-", label="training")
         plt.plot(result_time, y_pred.T[0], "g-", label="predicted")
         plt.plot(result_time, Ytst.T[0], "m-", label="real")
         plt.fill(np.concatenate([result_time, result_time[::-1]]),
