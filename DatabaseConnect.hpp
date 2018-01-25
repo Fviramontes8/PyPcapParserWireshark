@@ -19,7 +19,10 @@ public:
 	int getTableNames();
 	int readTable(std::string);
 	int makeTable(std::string);
+	int makeIPTable(std::string);
 	int writeData(std::string, std::string, std::vector<std::string>);
+	int writeIPData(std::string, std::string, std::vector<std::string>);
+	std::string searchMAC(std::string, std::string);
 	int connect();
 	int disconnect();
 	DatabaseConnect(std::string, std::string, std::string, std::string);

@@ -21,11 +21,11 @@ using namespace Tins;
 
 int main(int argc, char* argv[]) {
 	//Opening connection with database
-	DatabaseConnect db("postgres", "129.24.26.14", "postgres", "Cerculsihr4T");
+	DatabaseConnect db("postgres", "129.24.26.75", "postgres", "Cerculsihr4T");
 	db.connect();
 	
 	//Declaring table name to write to
-	std::string table_name = "pa";
+	std::string table_name = "sun";
 	
 	//Getting the most recent key from database table
 	int z = db.getNextKey(table_name);
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 	
 	//The string path is to go to the selected path to parse pcap files
 	/******************************************************************/
-	const std::string path("/root/PyPcapParserWireshark/Wack/");
+	const std::string path("/root/Pkt_data/sun/");
 	/******************************************************************/
 	
 	//Iterator to iterate throught the chosen path above

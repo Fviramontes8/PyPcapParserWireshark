@@ -39,12 +39,11 @@ int main(int argc, char* argv[]) {
 	DatabaseConnect db("postgres", "129.24.26.137", "postgres", "Cerculsihr4T");
 	db.connect();
 
-	//This is for the table we would like to write to
+	//Declaring table name to write to
 	std::string table_name = "tues";
 	
-	std::string table_name = "sub";
 	
-	//Getting database key
+	//Getting the most recent database key from database table
 	int z = db.getNextKey(table_name);
 	
 	//Making sure we don't reparse files
@@ -124,6 +123,7 @@ int main(int argc, char* argv[]) {
 					lastFiles.push_back(i->path().string());
 				}
 				else  {
+					//Adds file name to list of files so it is not parsed again
 					lastFiles.push_back(i->path().string());
 				}
 			
