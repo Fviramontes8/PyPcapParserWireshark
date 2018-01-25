@@ -45,8 +45,8 @@ class DatabaseConnect(object):
     def __init__(self):
         self.conn = None
 
-        self.mac_address_table_name = "MACAddressTable"
-        self.ip_address_table_name = "IPAddressTable"
+        self.mac_address_table_name = "ip"#Formerly: "MACAddressTable"
+        self.ip_address_table_name = "ip" #Formerly: "IPAddressTable"
         self.data_table_name = "raw_data_table"
         
         self.data_table_query = "(Key, Timestamp, SourceMACKey, DestinationMACKey, SourceIPKey, DestinationIPKey, TotalBits, FlagPassive, Flag2GHz, FlagOFDM, FlagCCK, FlagGFSK, Flag5GHz, FlagGSM, FlagCCKOFDM, NumPackets, SignalStrength, DataRate, Duration, DurationPreamble, CounterB, CounterG, CounterN) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)" 
@@ -92,7 +92,7 @@ class DatabaseConnect(object):
             cur = self.conn.cursor()
             #query = sql.SQL("SELECT * FROM {} WHERE key = (SELECT key FROM {} WHERE key = {})").format(sql.Identifier(self.data_table_name), sql.Identifier(self.data_table_name), sql.Identifier(str(ip_address_key)))
             
-            query = sql.SQL("SELECT macaddress FROM {} WHERE key =  %(name)s").format(sql.Identifier(self.mac_address_table_name), sql.Identifier(str(mac_address_key)))
+            query = sql.SQL("SELECT mac FROM {} WHERE key =  %(name)s").format(sql.Identifier(self.mac_address_table_name), sql.Identifier(str(mac_address_key)))
             
             cur.execute(query, {"name" : str(mac_address_key)})
             address = cur.fetchone()
@@ -182,14 +182,13 @@ class DatabaseConnect(object):
             
             return output
         return
-###############################################################################
-#How are we going to name the tables?
+
     def readDataTable(self, table_name):
         return self.readTable(table_name)
     #Default function
     #def readDataTable(self):
         #return self.readTable(self.data_table_name)
-###############################################################################         
+         
     def readIPTable(self):
         return self.readTable(self.ip_address_table_name)
     
