@@ -23,7 +23,8 @@ text_object = open("ip.txt", "r")
 ip_address = text_object.read()
 text_object.close()
 ip_address = ip_address.strip("\n")
-#print("This computer's IP address: " + str(ip_address))
+ip_address = ip_address.strip()
+print("This computer's IP address: " + ip_address)
 
 text_object = open("mac.txt", "r")
 mac_address = text_object.read()
@@ -32,9 +33,18 @@ mac_address = mac_address.strip("\n")
 #print("This computer's MAC address: " + mac_address)
 
 for pi_iterator in range(len(pi_details)):
-    database_mac = pi_details[pi_iterator+1][0]
-    #print("Database: " + database_mac)
-    if(database_mac == mac_address):
+    database_ip = pi_details[pi_iterator+1][1]
+    print("Database: " + database_ip)
+    if(database_ip == ip_address):
         print("There is a match, here is the key: " +str(pi_iterator+1))
+        break
     else:
-        print("There is no match!")
+        for pi_iterator in range(len(pi_details)):
+            database_mac = pi_details[pi_iterator+1][0]
+            #print("Database: " + database_mac)
+            if(database_mac == mac_address):
+                print("There is a match, here is the key: " +str(pi_iterator+1))
+                break
+            else:
+                print("There is no match!")
+

@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
 	db.connect();
 	
 	//Declaring table name to write to
-	std::string table_name = "sun";
+	std::string table_name = "sat";
 	
 	//Getting the most recent key from database table
 	int z = db.getNextKey(table_name);
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 	
 	//The string path is to go to the selected path to parse pcap files
 	/******************************************************************/
-	const std::string path("/root/Pkt_data/sun/");
+	const std::string path("/root/Pkt_data/sat/");
 	/******************************************************************/
 	
 	//Iterator to iterate throught the chosen path above
