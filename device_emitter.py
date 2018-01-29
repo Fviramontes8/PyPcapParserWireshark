@@ -32,19 +32,28 @@ text_object.close()
 mac_address = mac_address.strip("\n")
 #print("This computer's MAC address: " + mac_address)
 
+ip_check = 0
+
 for pi_iterator in range(len(pi_details)):
     database_ip = pi_details[pi_iterator+1][1]
-    print("Database: " + database_ip)
+    #print("Database: " + database_ip)
     if(database_ip == ip_address):
-        print("There is a match, here is the key: " +str(pi_iterator+1))
+        print("There is an IP address, here is the key: " +str(pi_iterator+1))
+        ip_check = 0
         break
     else:
-        for pi_iterator in range(len(pi_details)):
-            database_mac = pi_details[pi_iterator+1][0]
-            #print("Database: " + database_mac)
-            if(database_mac == mac_address):
-                print("There is a match, here is the key: " +str(pi_iterator+1))
-                break
-            else:
-                print("There is no match!")
+        print("There is no match for IP!")
+        ip_check = 1
+
+if(ip_check):
+    for pi_iterator in range(len(pi_details)):
+        database_mac = pi_details[pi_iterator+1][0]
+        #print("Database: " + database_mac)
+        if(database_mac == mac_address):
+            print("There is a MAC address, here is the key: " +str(pi_iterator+1))
+            #db.deleteIPData(pi_iterator+1)
+            break
+        else:
+            print("There is no match for MAC!")
+            #db.writeIPData
 
