@@ -24,7 +24,7 @@ ip_address = text_object.read()
 text_object.close()
 ip_address = ip_address.strip("\n")
 ip_address = ip_address.strip()
-print("This computer's IP address: " + ip_address)
+#print("This computer's IP address: " + ip_address)
 
 text_object = open("mac.txt", "r")
 mac_address = text_object.read()
@@ -32,28 +32,40 @@ text_object.close()
 mac_address = mac_address.strip("\n")
 #print("This computer's MAC address: " + mac_address)
 
-ip_check = 0
-
 for pi_iterator in range(len(pi_details)):
     database_ip = pi_details[pi_iterator+1][1]
     #print("Database: " + database_ip)
     if(database_ip == ip_address):
-        print("There is an IP address, here is the key: " +str(pi_iterator+1))
         ip_check = 0
-        break
+        print("There is an IP address, here is the key: " +str(pi_iterator+1))
     else:
-        print("There is no match for IP!")
+        #print("There is no match for IP!")
         ip_check = 1
+    #print("ip_check: " + str(ip_check))
+
+mac_check = 0
 
 if(ip_check):
     for pi_iterator in range(len(pi_details)):
         database_mac = pi_details[pi_iterator+1][0]
         #print("Database: " + database_mac)
         if(database_mac == mac_address):
+            mac_check = 0
             print("There is a MAC address, here is the key: " +str(pi_iterator+1))
             #db.deleteIPData(pi_iterator+1)
-            break
         else:
-            print("There is no match for MAC!")
-            #db.writeIPData
+            mac_check = 1
+            #print("There is no match for MAC!")
+        #print("mac_check: " + str(mac_check))
 
+if(mac_check):
+    print("This device is not on the database!")
+    db.connect()
+    key = db.getNextKey("ip")
+    db.disconnect()
+    key += 1
+    #print("Next key: " + str(key))
+    pi_upload = [key, mac_address, ip_address]
+    db.connect()
+    db.writeDeviceData("ip", pi_upload)
+    db.disconnect()

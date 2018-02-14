@@ -212,7 +212,15 @@ class DatabaseConnect(object):
     
     def writeData(self, table_name, new_table_data):
         self._writeData(table_name, self.data_table_query, new_table_data)
-            
+    #'''
+    def writeDeviceData(self, table_name, table_data):
+        table_query = "(Key , mac, ip) VALUES (%s, %s, %s)"
+        if self._checkConnection():
+            cur = self.conn.cursor()
+            query = sql.SQL("INSERT INTO {} " + table_query).format(sql.Identifier(table_name))
+            cur.execute(query, table_data)
+            self.conn.commit()
+    #'''
     def writeIPData(self, new_ip_data):
         self._writeData(self.ip_address_table_name, self.ip_table_query, new_ip_data)
     
